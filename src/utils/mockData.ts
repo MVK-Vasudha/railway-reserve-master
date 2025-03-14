@@ -1,288 +1,237 @@
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'user' | 'admin';
-}
-
-export interface Train {
-  id: string;
-  name: string;
-  number: string;
-  source: string;
-  destination: string;
-  departureTime: string;
-  arrivalTime: string;
-  distance: number;
-  duration: string;
-  availableSeats: {
-    sleeper: number;
-    ac3Tier: number;
-    ac2Tier: number;
-    acFirstClass: number;
-  };
-  fare: {
-    sleeper: number;
-    ac3Tier: number;
-    ac2Tier: number;
-    acFirstClass: number;
-  };
-  days: string[];
-}
-
-export interface Booking {
-  id: string;
-  pnr: string;
-  userId: string;
-  trainId: string;
-  passengers: Passenger[];
-  journeyDate: string;
-  bookingDate: string;
-  status: 'confirmed' | 'cancelled' | 'waiting';
-  seatType: 'sleeper' | 'ac3Tier' | 'ac2Tier' | 'acFirstClass';
-  totalFare: number;
-}
-
-export interface Passenger {
-  name: string;
-  age: number;
-  gender: 'male' | 'female' | 'other';
-  seatNumber?: string;
-}
-
-// Mock Users
-export const mockUsers: User[] = [
+// Mock data for trains
+export const trainsData = [
   {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'user',
+    id: 1,
+    trainNumber: 12952,
+    name: "Delhi Rajdhani",
+    source: "New Delhi",
+    destination: "Mumbai Central",
+    departureTime: "16:25",
+    arrivalTime: "08:15",
+    distance: 1377,
+    duration: "15h 50m",
+    classes: ["SL", "3A", "2A", "1A"],
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    fare: {
+      SL: 755,
+      "3A": 1955,
+      "2A": 2855,
+      "1A": 4755
+    }
   },
   {
-    id: '2',
-    name: 'Admin User',
-    email: 'admin@railways.com',
-    role: 'admin',
+    id: 2,
+    trainNumber: 12301,
+    name: "Howrah Rajdhani",
+    source: "New Delhi",
+    destination: "Howrah",
+    departureTime: "16:55",
+    arrivalTime: "09:55",
+    distance: 1451,
+    duration: "17h 00m",
+    classes: ["3A", "2A", "1A"],
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    fare: {
+      "3A": 2055,
+      "2A": 2995,
+      "1A": 5155
+    }
   },
+  {
+    id: 3,
+    trainNumber: 12957,
+    name: "Swarna Jayanti Express",
+    source: "Mumbai Central",
+    destination: "New Delhi",
+    departureTime: "19:25",
+    arrivalTime: "14:35",
+    distance: 1377,
+    duration: "19h 10m",
+    classes: ["SL", "3A", "2A"],
+    days: ["Mon", "Wed", "Fri"],
+    fare: {
+      SL: 665,
+      "3A": 1755,
+      "2A": 2555
+    }
+  },
+  {
+    id: 4,
+    trainNumber: 12951,
+    name: "Mumbai Rajdhani",
+    source: "Mumbai Central",
+    destination: "New Delhi",
+    departureTime: "17:00",
+    arrivalTime: "08:35",
+    distance: 1377,
+    duration: "15h 35m",
+    classes: ["3A", "2A", "1A"],
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    fare: {
+      "3A": 1955,
+      "2A": 2855,
+      "1A": 4755
+    }
+  },
+  {
+    id: 5,
+    trainNumber: 22221,
+    name: "Vande Bharat Express",
+    source: "New Delhi",
+    destination: "Varanasi",
+    departureTime: "06:00",
+    arrivalTime: "14:00",
+    distance: 759,
+    duration: "8h 00m",
+    classes: ["CC", "EC"],
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    fare: {
+      CC: 1755,
+      EC: 3255
+    }
+  }
 ];
 
-// Mock Trains
-export const mockTrains: Train[] = [
+// Mock data for users
+export const usersData = [
   {
-    id: '1',
-    name: 'Rajdhani Express',
-    number: 'RJ-12345',
-    source: 'Delhi',
-    destination: 'Mumbai',
-    departureTime: '16:35',
-    arrivalTime: '08:15',
-    distance: 1384,
-    duration: '15h 40m',
-    availableSeats: {
-      sleeper: 120,
-      ac3Tier: 85,
-      ac2Tier: 48,
-      acFirstClass: 20,
-    },
-    fare: {
-      sleeper: 755,
-      ac3Tier: 1990,
-      ac2Tier: 2890,
-      acFirstClass: 4950,
-    },
-    days: ['Mon', 'Wed', 'Fri', 'Sun'],
+    id: 1,
+    name: "Rahul Sharma",
+    email: "rahul.sharma@example.com",
+    phone: "+91 98765 43210",
+    status: "active"
   },
   {
-    id: '2',
-    name: 'Shatabdi Express',
-    number: 'ST-22567',
-    source: 'Bangalore',
-    destination: 'Chennai',
-    departureTime: '06:00',
-    arrivalTime: '11:00',
-    distance: 346,
-    duration: '5h 00m',
-    availableSeats: {
-      sleeper: 0,
-      ac3Tier: 0,
-      ac2Tier: 65,
-      acFirstClass: 35,
-    },
-    fare: {
-      sleeper: 0,
-      ac3Tier: 0,
-      ac2Tier: 1245,
-      acFirstClass: 2150,
-    },
-    days: ['Daily'],
+    id: 2,
+    name: "Priya Singh",
+    email: "priya.singh@example.com",
+    phone: "+91 87654 32109",
+    status: "active"
   },
   {
-    id: '3',
-    name: 'Duronto Express',
-    number: 'DE-12342',
-    source: 'Kolkata',
-    destination: 'Delhi',
-    departureTime: '20:10',
-    arrivalTime: '13:25',
-    distance: 1515,
-    duration: '17h 15m',
-    availableSeats: {
-      sleeper: 150,
-      ac3Tier: 100,
-      ac2Tier: 60,
-      acFirstClass: 24,
-    },
-    fare: {
-      sleeper: 890,
-      ac3Tier: 2320,
-      ac2Tier: 3260,
-      acFirstClass: 5675,
-    },
-    days: ['Tue', 'Thu', 'Sat'],
+    id: 3,
+    name: "Amit Patel",
+    email: "amit.patel@example.com",
+    phone: "+91 76543 21098",
+    status: "inactive"
   },
   {
-    id: '4',
-    name: 'Vande Bharat Express',
-    number: 'VB-18001',
-    source: 'Mumbai',
-    destination: 'Ahmedabad',
-    departureTime: '07:45',
-    arrivalTime: '13:55',
-    distance: 493,
-    duration: '6h 10m',
-    availableSeats: {
-      sleeper: 0,
-      ac3Tier: 0,
-      ac2Tier: 125,
-      acFirstClass: 73,
-    },
-    fare: {
-      sleeper: 0,
-      ac3Tier: 0,
-      ac2Tier: 1950,
-      acFirstClass: 3575,
-    },
-    days: ['Daily'],
+    id: 4,
+    name: "Sneha Gupta",
+    email: "sneha.gupta@example.com",
+    phone: "+91 65432 10987",
+    status: "blocked"
   },
   {
-    id: '5',
-    name: 'Garib Rath Express',
-    number: 'GR-12952',
-    source: 'Delhi',
-    destination: 'Bangalore',
-    departureTime: '15:35',
-    arrivalTime: '06:40',
-    distance: 2176,
-    duration: '39h 05m',
-    availableSeats: {
-      sleeper: 180,
-      ac3Tier: 120,
-      ac2Tier: 0,
-      acFirstClass: 0,
-    },
-    fare: {
-      sleeper: 1100,
-      ac3Tier: 2600,
-      ac2Tier: 0,
-      acFirstClass: 0,
-    },
-    days: ['Mon', 'Wed', 'Sat'],
-  },
+    id: 5,
+    name: "Ravi Kumar",
+    email: "ravi.kumar@example.com",
+    phone: "+91 54321 09876",
+    status: "active"
+  }
 ];
 
-// Mock Bookings
-export const mockBookings: Booking[] = [
+// Mock data for bookings
+export const bookingsData = [
   {
-    id: '1',
-    pnr: 'PNR1234567890',
-    userId: '1',
-    trainId: '1',
-    passengers: [
-      {
-        name: 'John Doe',
-        age: 35,
-        gender: 'male',
-        seatNumber: 'S5-34',
-      },
-      {
-        name: 'Jane Doe',
-        age: 32,
-        gender: 'female',
-        seatNumber: 'S5-35',
-      },
-    ],
-    journeyDate: '2023-12-15',
-    bookingDate: '2023-11-30',
-    status: 'confirmed',
-    seatType: 'sleeper',
-    totalFare: 1510,
+    id: 1,
+    pnr: "PNR4567812",
+    userId: 1,
+    userName: "Rahul Sharma",
+    trainId: 1,
+    trainName: "Delhi Rajdhani",
+    trainNumber: 12952,
+    source: "New Delhi",
+    destination: "Mumbai Central",
+    journeyDate: "2023-09-15",
+    departureTime: "16:25",
+    arrivalTime: "08:15",
+    classType: "3A",
+    seats: ["B1-22", "B1-23"],
+    totalFare: 3910,
+    status: "confirmed",
+    bookingDate: "2023-09-01",
+    paymentStatus: "completed"
   },
   {
-    id: '2',
-    pnr: 'PNR9876543210',
-    userId: '1',
-    trainId: '3',
-    passengers: [
-      {
-        name: 'John Doe',
-        age: 35,
-        gender: 'male',
-        seatNumber: 'B1-12',
-      },
-    ],
-    journeyDate: '2023-12-24',
-    bookingDate: '2023-12-01',
-    status: 'confirmed',
-    seatType: 'ac2Tier',
-    totalFare: 3260,
+    id: 2,
+    pnr: "PNR9876543",
+    userId: 2,
+    userName: "Priya Singh",
+    trainId: 5,
+    trainName: "Vande Bharat Express",
+    trainNumber: 22221,
+    source: "New Delhi",
+    destination: "Varanasi",
+    journeyDate: "2023-09-18",
+    departureTime: "06:00",
+    arrivalTime: "14:00",
+    classType: "EC",
+    seats: ["C5-12"],
+    totalFare: 3255,
+    status: "confirmed",
+    bookingDate: "2023-09-05",
+    paymentStatus: "completed"
   },
+  {
+    id: 3,
+    pnr: "PNR2468013",
+    userId: 1,
+    userName: "Rahul Sharma",
+    trainId: 2,
+    trainName: "Howrah Rajdhani",
+    trainNumber: 12301,
+    source: "New Delhi",
+    destination: "Howrah",
+    journeyDate: "2023-10-05",
+    departureTime: "16:55",
+    arrivalTime: "09:55",
+    classType: "2A",
+    seats: ["A2-15", "A2-16"],
+    totalFare: 5990,
+    status: "waiting",
+    bookingDate: "2023-09-10",
+    paymentStatus: "completed"
+  },
+  {
+    id: 4,
+    pnr: "PNR1357924",
+    userId: 3,
+    userName: "Amit Patel",
+    trainId: 4,
+    trainName: "Mumbai Rajdhani",
+    trainNumber: 12951,
+    source: "Mumbai Central",
+    destination: "New Delhi",
+    journeyDate: "2023-09-12",
+    departureTime: "17:00",
+    arrivalTime: "08:35",
+    classType: "1A",
+    seats: ["H1-3"],
+    totalFare: 4755,
+    status: "cancelled",
+    bookingDate: "2023-08-28",
+    paymentStatus: "refunded"
+  },
+  {
+    id: 5,
+    pnr: "PNR3692581",
+    userId: 5,
+    userName: "Ravi Kumar",
+    trainId: 3,
+    trainName: "Swarna Jayanti Express",
+    trainNumber: 12957,
+    source: "Mumbai Central",
+    destination: "New Delhi",
+    journeyDate: "2023-09-22",
+    departureTime: "19:25",
+    arrivalTime: "14:35",
+    classType: "SL",
+    seats: ["S4-45", "S4-46", "S4-47"],
+    totalFare: 1995,
+    status: "confirmed",
+    bookingDate: "2023-09-08",
+    paymentStatus: "completed"
+  }
 ];
-
-// List of stations
-export const stations = [
-  'Ahmedabad',
-  'Bangalore',
-  'Chennai',
-  'Delhi',
-  'Hyderabad',
-  'Jaipur',
-  'Kolkata',
-  'Lucknow',
-  'Mumbai',
-  'Pune',
-];
-
-// Helper function to format price to INR
-export const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(price);
-};
-
-// Get user by ID
-export const getUserById = (id: string): User | undefined => {
-  return mockUsers.find(user => user.id === id);
-};
-
-// Get train by ID
-export const getTrainById = (id: string): Train | undefined => {
-  return mockTrains.find(train => train.id === id);
-};
-
-// Get booking by ID
-export const getBookingById = (id: string): Booking | undefined => {
-  return mockBookings.find(booking => booking.id === id);
-};
-
-// Get booking by PNR
-export const getBookingByPNR = (pnr: string): Booking | undefined => {
-  return mockBookings.find(booking => booking.pnr === pnr);
-};
-
-// Get bookings by user ID
-export const getBookingsByUserId = (userId: string): Booking[] => {
-  return mockBookings.filter(booking => booking.userId === userId);
-};
