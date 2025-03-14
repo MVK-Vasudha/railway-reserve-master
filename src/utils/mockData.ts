@@ -235,3 +235,119 @@ export const bookingsData = [
     paymentStatus: "completed"
   }
 ];
+
+// Adding the missing exports
+
+// For Train Card
+export interface Train {
+  id: number;
+  name: string;
+  number: string;
+  source: string;
+  destination: string;
+  departureTime: string;
+  arrivalTime: string;
+  distance: number;
+  duration: string;
+  days: string[];
+  fare: {
+    sleeper?: number;
+    ac3Tier?: number;
+    ac2Tier?: number;
+    acFirstClass?: number;
+  };
+  availableSeats: {
+    sleeper: number;
+    ac3Tier: number;
+    ac2Tier: number;
+    acFirstClass: number;
+  };
+}
+
+// For dashboard
+export const mockBookings = [
+  {
+    id: "book1",
+    pnr: "PNR1234567",
+    trainId: 1,
+    journeyDate: "2023-10-25",
+    seatType: "ac3Tier",
+    totalFare: 1955,
+    status: "confirmed",
+    passengers: [
+      { name: "John Doe", age: 32, gender: "Male", seatNumber: "B1-12" }
+    ]
+  },
+  {
+    id: "book2",
+    pnr: "PNR7654321",
+    trainId: 5,
+    journeyDate: "2023-11-05",
+    seatType: "ac2Tier",
+    totalFare: 2855,
+    status: "cancelled",
+    passengers: [
+      { name: "Jane Smith", age: 28, gender: "Female", seatNumber: "A2-15" },
+      { name: "Mike Smith", age: 30, gender: "Male", seatNumber: "A2-16" }
+    ]
+  }
+];
+
+// Utility functions
+export const getTrainById = (id: number) => {
+  // Convert the train data format to match the Train interface
+  const transformedTrains: Train[] = trainsData.map(train => ({
+    id: train.id,
+    name: train.name,
+    number: train.trainNumber.toString(),
+    source: train.source,
+    destination: train.destination,
+    departureTime: train.departureTime,
+    arrivalTime: train.arrivalTime,
+    distance: train.distance,
+    duration: train.duration,
+    days: train.days,
+    fare: {
+      sleeper: train.fare.SL,
+      ac3Tier: train.fare["3A"],
+      ac2Tier: train.fare["2A"],
+      acFirstClass: train.fare["1A"]
+    },
+    availableSeats: {
+      sleeper: Math.floor(Math.random() * 200),
+      ac3Tier: Math.floor(Math.random() * 100),
+      ac2Tier: Math.floor(Math.random() * 60),
+      acFirstClass: Math.floor(Math.random() * 24)
+    }
+  }));
+  
+  return transformedTrains.find(train => train.id === id);
+};
+
+export const formatPrice = (price: number) => {
+  return `₹${price.toLocaleString('en-IN')}`;
+};
+
+// List of stations for the search form
+export const stations = [
+  "New Delhi",
+  "Mumbai Central",
+  "Howrah",
+  "Chennai Central",
+  "Bangalore City",
+  "Ahmedabad",
+  "Pune",
+  "Jaipur",
+  "Lucknow",
+  "Varanasi",
+  "Kochi",
+  "Hyderabad",
+  "Guwahati",
+  "Patna",
+  "Bhopal",
+  "Chandigarh",
+  "Trivandrum",
+  "Jammu",
+  "Amritsar",
+  "Goa"
+];
