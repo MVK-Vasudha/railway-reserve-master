@@ -13,7 +13,7 @@ const PaymentHistory = () => {
   // Format transactions based on bookings for demonstration
   const transactions = mockBookings.map(booking => ({
     id: `TXN-${Math.floor(Math.random() * 1000000)}`,
-    date: booking.bookingDate || "2023-06-15",
+    date: booking.journeyDate, // Use journeyDate instead of bookingDate
     amount: booking.totalFare,
     status: "Completed",
     type: "Train Ticket",
