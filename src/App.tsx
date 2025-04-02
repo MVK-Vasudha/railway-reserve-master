@@ -9,6 +9,12 @@ import NotFound from "./pages/NotFound";
 import AdminPanel from "./pages/AdminPanel";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import Profile from "./pages/Profile";
+import PnrStatus from "./pages/PnrStatus";
+import PaymentHistory from "./pages/PaymentHistory";
+import TrainSearch from "./pages/TrainSearch";
+import BookingForm from "./pages/BookingForm";
+import PaymentProcess from "./pages/PaymentProcess";
 
 const queryClient = new QueryClient();
 
@@ -22,9 +28,13 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/search" element={<Dashboard />} /> {/* Temporarily route to Dashboard */}
-          <Route path="/pnr" element={<Dashboard />} /> {/* Temporarily route to Dashboard */}
           <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/pnr" element={<PnrStatus />} />
+          <Route path="/payment" element={<PaymentHistory />} />
+          <Route path="/search" element={<TrainSearch />} />
+          <Route path="/booking" element={<BookingForm />} />
+          <Route path="/payment-process" element={<PaymentProcess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
