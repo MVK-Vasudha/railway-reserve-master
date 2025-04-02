@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -13,14 +13,69 @@ import { Calendar, Clock, MapPin, Ticket, User, AlertTriangle, CreditCard, Searc
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
-  const upcomingBookings = mockBookings.filter(b => b.status === 'confirmed');
-  const cancelledBookings = mockBookings.filter(b => b.status === 'cancelled');
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
+  const [cancelledBookings, setCancelledBookings] = useState<any[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const navigate = useNavigate();
+  
+  // Check if user is logged in and load bookings on mount
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("userLoggedIn") === "true";
+    const email = localStorage.getItem("userEmail");
+    
+    if (!isLoggedIn) {
+      toast({
+        title: "Not logged in",
+        description: "You need to log in to view your bookings",
+      });
+      navigate("/login");
+      return;
+    }
+    
+    setUserEmail(email);
+    
+    // Load bookings
+    const upcoming = mockBookings.filter(b => b.status === 'confirmed');
+    const cancelled = mockBookings.filter(b => b.status === 'cancelled');
+    
+    setUpcomingBookings(upcoming);
+    setCancelledBookings(cancelled);
+    
+    // Listen for booking updates
+    window.addEventListener("booking_updated", loadBookings);
+    
+    return () => {
+      window.removeEventListener("booking_updated", loadBookings);
+    };
+  }, [navigate]);
+  
+  const loadBookings = () => {
+    const upcoming = mockBookings.filter(b => b.status === 'confirmed');
+    const cancelled = mockBookings.filter(b => b.status === 'cancelled');
+    
+    setUpcomingBookings(upcoming);
+    setCancelledBookings(cancelled);
+  };
 
   const handleCancelBooking = (bookingId: string) => {
+    // In a real app, make an API call to cancel booking
     toast({
       title: "Booking Cancelled",
       description: "Your booking has been cancelled successfully. Refund process initiated.",
     });
+    
+    // Update bookings
+    const updatedUpcoming = upcomingBookings.filter(b => b.id !== bookingId);
+    const cancelledBooking = upcomingBookings.find(b => b.id === bookingId);
+    
+    if (cancelledBooking) {
+      cancelledBooking.status = 'cancelled';
+      setUpcomingBookings(updatedUpcoming);
+      setCancelledBookings([...cancelledBookings, cancelledBooking]);
+      
+      // Dispatch event for other components to update
+      window.dispatchEvent(new CustomEvent("booking_updated"));
+    }
   };
 
   return (
@@ -38,8 +93,8 @@ const Dashboard = () => {
                     <User className="h-6 w-6 text-railway-600" />
                   </div>
                   <div>
-                    <CardTitle>John Doe</CardTitle>
-                    <CardDescription>john@example.com</CardDescription>
+                    <CardTitle>{userEmail ? userEmail.split('@')[0] : 'Guest'}</CardTitle>
+                    <CardDescription>{userEmail || 'Not logged in'}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -215,12 +270,76 @@ const Dashboard = () => {
               <TabsContent value="cancelled" className="animate-fade-in">
                 {cancelledBookings.length > 0 ? (
                   <div className="space-y-6">
-                    {/* Cancelled bookings would go here */}
-                    <Card>
-                      <CardContent className="p-4">
-                        No cancelled bookings found.
-                      </CardContent>
-                    </Card>
+                    {cancelledBookings.map((booking) => {
+                      const train = getTrainById(booking.trainId);
+                      if (!train) return null;
+                      
+                      return (
+                        <Card key={booking.id} className="glass overflow-hidden">
+                          <CardContent className="p-0">
+                            <div className="bg-gray-100 p-4 border-b border-gray-200">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h3 className="font-bold text-lg">{train.name}</h3>
+                                  <p className="text-sm text-gray-500">{train.number}</p>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-sm font-medium text-red-600 mb-1">
+                                    Cancelled
+                                  </div>
+                                  <div className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">
+                                    PNR: {booking.pnr}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="p-4 opacity-75">
+                              {/* Similar content as upcoming bookings but with cancelled styling */}
+                              <div className="grid grid-cols-3 gap-4 mb-4">
+                                <div>
+                                  <p className="text-sm text-gray-500">Departure</p>
+                                  <p className="text-xl font-bold">{train.departureTime}</p>
+                                  <p className="text-sm font-medium">{train.source}</p>
+                                </div>
+                                <div className="flex flex-col items-center justify-center">
+                                  <div className="text-xs text-gray-500 mb-1">{train.duration}</div>
+                                  <div className="relative w-full flex items-center justify-center">
+                                    <div className="w-full h-0.5 bg-gray-200"></div>
+                                    <div className="absolute w-2 h-2 rounded-full bg-gray-400 left-0"></div>
+                                    <div className="absolute w-2 h-2 rounded-full bg-gray-400 right-0"></div>
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">{train.distance} km</div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-gray-500">Arrival</p>
+                                  <p className="text-xl font-bold">{train.arrivalTime}</p>
+                                  <p className="text-sm font-medium">{train.destination}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center text-sm text-gray-600 gap-4 mb-4">
+                                <div className="flex items-center">
+                                  <Calendar size={16} className="mr-1 text-gray-600" />
+                                  {booking.journeyDate}
+                                </div>
+                                <div className="flex items-center">
+                                  <Ticket size={16} className="mr-1 text-gray-600" />
+                                  {booking.seatType === 'sleeper' ? 'Sleeper' :
+                                   booking.seatType === 'ac3Tier' ? 'AC 3 Tier' :
+                                   booking.seatType === 'ac2Tier' ? 'AC 2 Tier' : 'AC First Class'}
+                                </div>
+                              </div>
+                              
+                              <div className="p-4 mt-4 bg-red-50 rounded-md text-red-700 text-sm">
+                                <AlertTriangle size={16} className="inline-block mr-2" />
+                                This booking has been cancelled. Refund will be processed within 3-5 business days.
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12">

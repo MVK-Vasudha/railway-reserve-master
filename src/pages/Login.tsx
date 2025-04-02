@@ -32,6 +32,10 @@ const Login = () => {
       // Simulate API call with a timeout
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Set login state in localStorage
+      localStorage.setItem("userLoggedIn", "true");
+      localStorage.setItem("userEmail", email);
+      
       toast({
         title: "Success",
         description: "You have logged in successfully",

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,15 +10,38 @@ import { User, CreditCard, Ticket, Search, Download, Calendar, CheckCircle, XCir
 import { mockBookings, formatPrice } from "@/utils/mockData";
 
 const PaymentHistory = () => {
-  // Format transactions based on bookings for demonstration
-  const transactions = mockBookings.map(booking => ({
-    id: `TXN-${Math.floor(Math.random() * 1000000)}`,
-    date: booking.journeyDate, // Use journeyDate instead of bookingDate
-    amount: booking.totalFare,
-    status: "Completed",
-    type: "Train Ticket",
-    reference: booking.pnr
-  }));
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  
+  // Load transactions when component mounts
+  useEffect(() => {
+    loadTransactions();
+    
+    // Get user email from localStorage
+    const email = localStorage.getItem("userEmail");
+    setUserEmail(email);
+    
+    // Listen for payment updates
+    window.addEventListener("payment_completed", loadTransactions);
+    
+    return () => {
+      window.removeEventListener("payment_completed", loadTransactions);
+    };
+  }, []);
+  
+  const loadTransactions = () => {
+    // Format transactions based on bookings for demonstration
+    const formattedTransactions = mockBookings.map(booking => ({
+      id: `TXN-${Math.floor(Math.random() * 1000000)}`,
+      date: booking.journeyDate, 
+      amount: booking.totalFare,
+      status: "Completed",
+      type: "Train Ticket",
+      reference: booking.pnr
+    }));
+    
+    setTransactions(formattedTransactions);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -35,8 +58,8 @@ const PaymentHistory = () => {
                     <User className="h-6 w-6 text-railway-600" />
                   </div>
                   <div>
-                    <CardTitle>John Doe</CardTitle>
-                    <CardDescription>john@example.com</CardDescription>
+                    <CardTitle>{userEmail ? userEmail.split('@')[0] : 'Guest'}</CardTitle>
+                    <CardDescription>{userEmail || 'Not logged in'}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -91,36 +114,44 @@ const PaymentHistory = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center">
-                            <Calendar size={14} className="mr-1 text-gray-400" />
-                            {transaction.date}
-                          </div>
-                        </TableCell>
-                        <TableCell>{transaction.id}</TableCell>
-                        <TableCell>{transaction.reference}</TableCell>
-                        <TableCell>{transaction.type}</TableCell>
-                        <TableCell className="font-medium">{formatPrice(transaction.amount)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            {transaction.status === "Completed" ? (
-                              <CheckCircle size={14} className="mr-1 text-green-500" />
-                            ) : (
-                              <XCircle size={14} className="mr-1 text-red-500" />
-                            )}
-                            {transaction.status}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <button className="text-railway-600 hover:text-railway-800 flex items-center">
-                            <Download size={14} className="mr-1" />
-                            <span className="text-xs">Receipt</span>
-                          </button>
+                    {transactions.length > 0 ? (
+                      transactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              <Calendar size={14} className="mr-1 text-gray-400" />
+                              {transaction.date}
+                            </div>
+                          </TableCell>
+                          <TableCell>{transaction.id}</TableCell>
+                          <TableCell>{transaction.reference}</TableCell>
+                          <TableCell>{transaction.type}</TableCell>
+                          <TableCell className="font-medium">{formatPrice(transaction.amount)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              {transaction.status === "Completed" ? (
+                                <CheckCircle size={14} className="mr-1 text-green-500" />
+                              ) : (
+                                <XCircle size={14} className="mr-1 text-red-500" />
+                              )}
+                              {transaction.status}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <button className="text-railway-600 hover:text-railway-800 flex items-center">
+                              <Download size={14} className="mr-1" />
+                              <span className="text-xs">Receipt</span>
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-4">
+                          No transactions found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>

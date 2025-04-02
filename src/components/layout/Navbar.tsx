@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Train, User, LogIn } from "lucide-react";
+import { Menu, X, Train, User, LogIn, LogOut } from "lucide-react";
 import { CustomButton } from "@/components/ui/custom-button";
 import { toast } from "@/hooks/use-toast";
 
@@ -23,18 +23,28 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Check localStorage on component mount to see if user is logged in
+  useEffect(() => {
+    const userLoggedIn = localStorage.getItem("userLoggedIn");
+    if (userLoggedIn === "true") {
+      setLoggedIn(true);
+    }
+  }, []);
+
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
 
-  // Mock login/logout
+  // Handle logout
   const handleAuth = () => {
     if (loggedIn) {
       setLoggedIn(false);
+      localStorage.removeItem("userLoggedIn");
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
       });
+      navigate("/");
     } else {
       navigate("/login");
     }
@@ -86,7 +96,14 @@ const Navbar = () => {
                     <span>Account</span>
                   </CustomButton>
                 </Link>
-                <CustomButton onClick={handleAuth} size="sm">Logout</CustomButton>
+                <CustomButton 
+                  onClick={handleAuth} 
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </CustomButton>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
@@ -149,7 +166,17 @@ const Navbar = () => {
                       My Account
                     </CustomButton>
                   </Link>
-                  <CustomButton onClick={handleAuth} size="sm">Logout</CustomButton>
+                  <CustomButton 
+                    onClick={() => {
+                      handleAuth();
+                      setIsOpen(false);
+                    }} 
+                    size="sm"
+                    className="w-full justify-start"
+                  >
+                    <LogOut size={16} className="mr-2" />
+                    Logout
+                  </CustomButton>
                 </div>
               ) : (
                 <div className="flex flex-col space-y-2 px-3">
