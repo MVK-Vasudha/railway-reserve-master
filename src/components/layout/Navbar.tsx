@@ -1,8 +1,9 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, Train, User, LogIn } from "lucide-react";
 import { CustomButton } from "@/components/ui/custom-button";
+import { toast } from "@/hooks/use-toast";
 
 interface NavItem {
   label: string;
@@ -20,6 +21,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -27,7 +29,19 @@ const Navbar = () => {
 
   // Mock login/logout
   const handleAuth = () => {
-    setLoggedIn(!loggedIn);
+    if (loggedIn) {
+      setLoggedIn(false);
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully",
+      });
+    } else {
+      navigate("/login");
+    }
+  };
+
+  const handleRegister = () => {
+    navigate("/login");
   };
 
   return (
@@ -85,7 +99,7 @@ const Navbar = () => {
                   <LogIn size={16} />
                   <span>Login</span>
                 </CustomButton>
-                <CustomButton onClick={handleAuth} size="sm">Register</CustomButton>
+                <CustomButton onClick={handleRegister} size="sm">Register</CustomButton>
               </div>
             )}
           </div>
@@ -142,13 +156,24 @@ const Navbar = () => {
                   <CustomButton 
                     variant="ghost" 
                     size="sm" 
-                    onClick={handleAuth}
+                    onClick={() => {
+                      handleAuth();
+                      setIsOpen(false);
+                    }}
                     className="w-full justify-start"
                   >
                     <LogIn size={16} className="mr-2" />
                     Login
                   </CustomButton>
-                  <CustomButton onClick={handleAuth} size="sm">Register</CustomButton>
+                  <CustomButton 
+                    onClick={() => {
+                      handleRegister();
+                      setIsOpen(false);
+                    }} 
+                    size="sm"
+                  >
+                    Register
+                  </CustomButton>
                 </div>
               )}
             </div>
