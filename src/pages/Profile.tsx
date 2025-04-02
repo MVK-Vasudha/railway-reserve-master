@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +14,36 @@ import { User, Mail, Phone, MapPin, Save } from "lucide-react";
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "John Doe",
-    email: "john@example.com",
+    name: "",
+    email: "",
     phone: "123-456-7890",
     address: "123 Railway Street, City",
     state: "California",
     pincode: "560001"
   });
+  const navigate = useNavigate();
+
+  // Load user data on mount
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("userLoggedIn") === "true";
+    if (!isLoggedIn) {
+      toast({
+        title: "Not logged in",
+        description: "You need to log in to view your profile",
+      });
+      navigate("/login");
+      return;
+    }
+    
+    // Get user data from localStorage
+    const userEmail = localStorage.getItem("userEmail") || "";
+    // Set the email and generate a name from it
+    setFormData(prev => ({
+      ...prev,
+      email: userEmail,
+      name: userEmail ? userEmail.split('@')[0].replace(/\./g, ' ').replace(/(\w)(\w*)/g, (_, first, rest) => first.toUpperCase() + rest) : ""
+    }));
+  }, [navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -30,6 +53,13 @@ const Profile = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // Save to localStorage for persistence
+    localStorage.setItem("userName", formData.name);
+    localStorage.setItem("userPhone", formData.phone);
+    localStorage.setItem("userAddress", formData.address);
+    localStorage.setItem("userState", formData.state);
+    localStorage.setItem("userPincode", formData.pincode);
     
     // Simulate API call
     setTimeout(() => {

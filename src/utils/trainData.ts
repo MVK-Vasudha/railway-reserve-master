@@ -55,4 +55,58 @@ export const availableTrains = [
     },
     days: ["Tue", "Thu", "Sat"]
   },
+  {
+    id: "train-104",
+    name: "Tejas Express",
+    number: "12004",
+    departureTime: "08:30",
+    arrivalTime: "14:00",
+    duration: "5h 30m",
+    source: "Mumbai",
+    destination: "Goa",
+    distance: "552",
+    coaches: {
+      sleeper: { available: 0, fare: 0 },
+      ac3Tier: { available: 50, fare: 1500 },
+      ac2Tier: { available: 32, fare: 2200 },
+      acFirstClass: { available: 16, fare: 3800 }
+    },
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  {
+    id: "train-105",
+    name: "Gatimaan Express",
+    number: "12005",
+    departureTime: "08:10",
+    arrivalTime: "09:50",
+    duration: "1h 40m",
+    source: "Delhi",
+    destination: "Agra",
+    distance: "188",
+    coaches: {
+      sleeper: { available: 0, fare: 0 },
+      ac3Tier: { available: 0, fare: 0 },
+      ac2Tier: { available: 40, fare: 1200 },
+      acFirstClass: { available: 20, fare: 2200 }
+    },
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  {
+    id: "train-106",
+    name: "Humsafar Express",
+    number: "12006",
+    departureTime: "23:55",
+    arrivalTime: "10:30",
+    duration: "10h 35m",
+    source: "Delhi",
+    destination: "Lucknow",
+    distance: "495",
+    coaches: {
+      sleeper: { available: 0, fare: 0 },
+      ac3Tier: { available: 65, fare: 1250 },
+      ac2Tier: { available: 0, fare: 0 },
+      acFirstClass: { available: 0, fare: 0 }
+    },
+    days: ["Mon", "Wed", "Fri"]
+  }
 ];

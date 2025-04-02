@@ -18,8 +18,28 @@ export const triggerBookingUpdate = () => {
 /**
  * Helper to simulate a successful payment and update relevant components
  */
-export const simulateSuccessfulPayment = () => {
-  // This would typically be called after a payment is processed
+export const simulateSuccessfulPayment = (bookingDetails?: any) => {
+  // Store booking in localStorage if provided
+  if (bookingDetails) {
+    const existingBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
+    existingBookings.push({
+      ...bookingDetails,
+      id: `book${Date.now()}`,
+      pnr: `PNR${Math.floor(1000000 + Math.random() * 9000000)}`,
+      status: "confirmed"
+    });
+    localStorage.setItem("userBookings", JSON.stringify(existingBookings));
+  }
+  
+  // Trigger events to update UI components
   triggerPaymentUpdate();
   triggerBookingUpdate();
 };
+
+/**
+ * Get user bookings from localStorage
+ */
+export const getUserBookings = () => {
+  return JSON.parse(localStorage.getItem("userBookings") || "[]");
+};
+

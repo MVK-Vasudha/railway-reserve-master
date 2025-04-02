@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { mockBookings, getTrainById, formatPrice } from "@/utils/mockData";
+import { getUserBookings } from "@/utils/events";
 import { Calendar, Clock, MapPin, Ticket, User, AlertTriangle, CreditCard, Search } from "lucide-react";
 
 const Dashboard = () => {
@@ -16,12 +16,14 @@ const Dashboard = () => {
   const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   const [cancelledBookings, setCancelledBookings] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const navigate = useNavigate();
   
   // Check if user is logged in and load bookings on mount
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("userLoggedIn") === "true";
     const email = localStorage.getItem("userEmail");
+    const name = localStorage.getItem("userName");
     
     if (!isLoggedIn) {
       toast({
@@ -33,13 +35,10 @@ const Dashboard = () => {
     }
     
     setUserEmail(email);
+    setUserName(name || (email ? email.split('@')[0] : null));
     
     // Load bookings
-    const upcoming = mockBookings.filter(b => b.status === 'confirmed');
-    const cancelled = mockBookings.filter(b => b.status === 'cancelled');
-    
-    setUpcomingBookings(upcoming);
-    setCancelledBookings(cancelled);
+    loadBookings();
     
     // Listen for booking updates
     window.addEventListener("booking_updated", loadBookings);
@@ -50,32 +49,48 @@ const Dashboard = () => {
   }, [navigate]);
   
   const loadBookings = () => {
-    const upcoming = mockBookings.filter(b => b.status === 'confirmed');
-    const cancelled = mockBookings.filter(b => b.status === 'cancelled');
+    // Get bookings from localStorage
+    const userBookings = getUserBookings();
     
-    setUpcomingBookings(upcoming);
-    setCancelledBookings(cancelled);
+    // If we have user bookings, use those
+    if (userBookings && userBookings.length > 0) {
+      const upcoming = userBookings.filter((b: any) => b.status === 'confirmed');
+      const cancelled = userBookings.filter((b: any) => b.status === 'cancelled');
+      
+      setUpcomingBookings(upcoming);
+      setCancelledBookings(cancelled);
+    } else {
+      // Fall back to mock data if no user bookings
+      const upcoming = mockBookings.filter(b => b.status === 'confirmed');
+      const cancelled = mockBookings.filter(b => b.status === 'cancelled');
+      
+      setUpcomingBookings(upcoming);
+      setCancelledBookings(cancelled);
+    }
   };
 
   const handleCancelBooking = (bookingId: string) => {
-    // In a real app, make an API call to cancel booking
+    // Get current bookings
+    const userBookings = getUserBookings();
+    
+    // Find and update the cancelled booking
+    const updatedBookings = userBookings.map((booking: any) => {
+      if (booking.id === bookingId) {
+        return { ...booking, status: 'cancelled' };
+      }
+      return booking;
+    });
+    
+    // Save back to localStorage
+    localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
+    
     toast({
       title: "Booking Cancelled",
       description: "Your booking has been cancelled successfully. Refund process initiated.",
     });
     
-    // Update bookings
-    const updatedUpcoming = upcomingBookings.filter(b => b.id !== bookingId);
-    const cancelledBooking = upcomingBookings.find(b => b.id === bookingId);
-    
-    if (cancelledBooking) {
-      cancelledBooking.status = 'cancelled';
-      setUpcomingBookings(updatedUpcoming);
-      setCancelledBookings([...cancelledBookings, cancelledBooking]);
-      
-      // Dispatch event for other components to update
-      window.dispatchEvent(new CustomEvent("booking_updated"));
-    }
+    // Reload bookings to update the UI
+    loadBookings();
   };
 
   return (
@@ -295,7 +310,6 @@ const Dashboard = () => {
                             </div>
                             
                             <div className="p-4 opacity-75">
-                              {/* Similar content as upcoming bookings but with cancelled styling */}
                               <div className="grid grid-cols-3 gap-4 mb-4">
                                 <div>
                                   <p className="text-sm text-gray-500">Departure</p>
