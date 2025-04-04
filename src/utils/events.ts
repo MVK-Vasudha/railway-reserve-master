@@ -1,5 +1,6 @@
 
 // Simple event system to communicate between components
+import { availableTrains as defaultTrains } from "./trainData";
 
 /**
  * Trigger a payment event to update transaction history
@@ -88,9 +89,8 @@ export const addNewTrain = (trainData: any) => {
   let trains = JSON.parse(localStorage.getItem("availableTrains") || "null");
   
   if (!trains) {
-    // Import from trainData if no trains in localStorage yet
-    const { availableTrains } = require("./trainData");
-    trains = availableTrains;
+    // Use imported default trains instead of require
+    trains = defaultTrains;
   }
   
   // Add new train with unique ID
@@ -117,11 +117,10 @@ export const getAllTrains = () => {
   let trains = JSON.parse(localStorage.getItem("availableTrains") || "null");
   
   if (!trains) {
-    // Import from trainData if no trains in localStorage yet
-    const { availableTrains } = require("./trainData");
-    trains = availableTrains;
+    // Use imported default trains instead of require
+    trains = defaultTrains;
     // Initialize localStorage with default trains
-    localStorage.setItem("availableTrains", JSON.stringify(availableTrains));
+    localStorage.setItem("availableTrains", JSON.stringify(defaultTrains));
   }
   
   return trains;
@@ -142,4 +141,3 @@ export const updatePnrStatus = (pnr: string, newStatus: string) => {
   localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
   triggerBookingUpdate();
 };
-
