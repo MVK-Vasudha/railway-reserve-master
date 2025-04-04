@@ -1,17 +1,20 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, ArrowLeft } from "lucide-react";
+import { Mail, Lock, ArrowLeft, ShieldCheck } from "lucide-react";
 import { CustomButton } from "@/components/ui/custom-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { adminLogin } from "@/utils/events";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loginType, setLoginType] = useState("user");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,19 +32,40 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Set login state in localStorage
-      localStorage.setItem("userLoggedIn", "true");
-      localStorage.setItem("userEmail", email);
-      
-      toast({
-        title: "Success",
-        description: "You have logged in successfully",
-      });
-      
-      navigate("/dashboard");
+      if (loginType === "admin") {
+        // Try admin login
+        const success = adminLogin(email, password);
+        
+        if (success) {
+          toast({
+            title: "Success",
+            description: "You have logged in as admin",
+          });
+          navigate("/admin");
+        } else {
+          toast({
+            title: "Error",
+            description: "Invalid admin credentials",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Regular user login
+        // Simulate API call with a timeout
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Set login state in localStorage
+        localStorage.setItem("userLoggedIn", "true");
+        localStorage.setItem("userEmail", email);
+        localStorage.setItem("userName", email.split('@')[0]);
+        
+        toast({
+          title: "Success",
+          description: "You have logged in successfully",
+        });
+        
+        navigate("/dashboard");
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -74,6 +98,14 @@ const Login = () => {
             <CardDescription>
               Enter your credentials to access your account
             </CardDescription>
+            <Tabs defaultValue="user" value={loginType} onValueChange={setLoginType} className="w-full mt-4">
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger value="user">User Login</TabsTrigger>
+                <TabsTrigger value="admin" className="flex items-center gap-1">
+                  <ShieldCheck className="h-4 w-4" /> Admin Login
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,12 +118,17 @@ const Login = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={loginType === "admin" ? "admin@railreserve.com" : "you@example.com"}
                     className="pl-10"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
+                {loginType === "admin" && (
+                  <p className="text-xs text-muted-foreground">
+                    For demo purposes, use admin@railreserve.com / admin123
+                  </p>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -121,18 +158,20 @@ const Login = () => {
                 className="w-full mt-6" 
                 isLoading={isLoading}
               >
-                Sign In
+                {loginType === "admin" ? "Sign In as Admin" : "Sign In"}
               </CustomButton>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <div className="w-full border-t border-gray-200 my-2"></div>
-            <p className="text-sm text-center text-gray-500">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-railway-600 hover:underline font-medium">
-                Create an account
-              </Link>
-            </p>
+            {loginType === "user" && (
+              <p className="text-sm text-center text-gray-500">
+                Don't have an account?{" "}
+                <Link to="/register" className="text-railway-600 hover:underline font-medium">
+                  Create an account
+                </Link>
+              </p>
+            )}
           </CardFooter>
         </Card>
       </div>

@@ -108,5 +108,77 @@ export const availableTrains = [
       acFirstClass: { available: 0, fare: 0 }
     },
     days: ["Mon", "Wed", "Fri"]
+  },
+  {
+    id: "train-107",
+    name: "Vande Bharat Express",
+    number: "12007",
+    departureTime: "06:40",
+    arrivalTime: "13:10",
+    duration: "6h 30m",
+    source: "New Delhi",
+    destination: "Varanasi",
+    distance: "759",
+    coaches: {
+      sleeper: { available: 0, fare: 0 },
+      ac3Tier: { available: 0, fare: 0 },
+      ac2Tier: { available: 60, fare: 2400 },
+      acFirstClass: { available: 30, fare: 4000 }
+    },
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  {
+    id: "train-108",
+    name: "Mumbai Mail",
+    number: "12008",
+    departureTime: "23:00",
+    arrivalTime: "15:20",
+    duration: "16h 20m",
+    source: "Delhi",
+    destination: "Mumbai",
+    distance: "1384",
+    coaches: {
+      sleeper: { available: 72, fare: 900 },
+      ac3Tier: { available: 48, fare: 1800 },
+      ac2Tier: { available: 24, fare: 2600 },
+      acFirstClass: { available: 12, fare: 4500 }
+    },
+    days: ["Mon", "Wed", "Fri", "Sun"]
+  },
+  {
+    id: "train-109",
+    name: "Sampark Kranti Express",
+    number: "12009",
+    departureTime: "07:45",
+    arrivalTime: "22:30",
+    duration: "14h 45m",
+    source: "Mumbai",
+    destination: "Kolkata",
+    distance: "1968",
+    coaches: {
+      sleeper: { available: 80, fare: 950 },
+      ac3Tier: { available: 54, fare: 1950 },
+      ac2Tier: { available: 30, fare: 2800 },
+      acFirstClass: { available: 15, fare: 4800 }
+    },
+    days: ["Tue", "Thu", "Sat"]
+  },
+  {
+    id: "train-110",
+    name: "Chennai Express",
+    number: "12010",
+    departureTime: "20:15",
+    arrivalTime: "18:45",
+    duration: "22h 30m",
+    source: "Delhi",
+    destination: "Chennai",
+    distance: "2175",
+    coaches: {
+      sleeper: { available: 86, fare: 1050 },
+      ac3Tier: { available: 58, fare: 2150 },
+      ac2Tier: { available: 32, fare: 3100 },
+      acFirstClass: { available: 18, fare: 5200 }
+    },
+    days: ["Mon", "Thu", "Sun"]
   }
 ];
