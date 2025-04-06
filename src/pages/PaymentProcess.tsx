@@ -7,6 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { CreditCard, CheckCircle, Calendar, Train as TrainIcon, Clock, MapPin, User } from "lucide-react";
+import { simulateSuccessfulPayment } from "@/utils/events";
 
 const PaymentProcess = () => {
   const navigate = useNavigate();

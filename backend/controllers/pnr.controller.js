@@ -29,7 +29,9 @@ exports.getPnrStatus = async (req, res, next) => {
         departureTime: booking.trainId.departureTime,
         arrivalTime: booking.trainId.arrivalTime,
         passengerCount: booking.passengers.length,
-        seatClass: booking.seatClass
+        seatClass: booking.seatClass,
+        totalFare: booking.totalFare,
+        bookingDate: booking.createdAt
       }
     });
   } catch (err) {

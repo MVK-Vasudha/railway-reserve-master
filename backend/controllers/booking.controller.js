@@ -89,6 +89,11 @@ exports.createBooking = async (req, res, next) => {
       });
     }
     
+    // Ensure journey date is in the correct format if provided
+    if (req.body.date && !req.body.journeyDate) {
+      req.body.journeyDate = req.body.date;
+    }
+    
     const booking = await Booking.create(req.body);
     
     // Update available seats in train
