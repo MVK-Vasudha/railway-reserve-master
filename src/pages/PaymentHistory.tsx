@@ -7,40 +7,124 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { User, CreditCard, Ticket, Search, Download, Calendar, CheckCircle, XCircle } from "lucide-react";
-import { mockBookings, formatPrice } from "@/utils/mockData";
+import { toast } from "@/hooks/use-toast";
+import axios from "axios";
 
 const PaymentHistory = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   
   // Load transactions when component mounts
   useEffect(() => {
-    loadTransactions();
-    
-    // Get user email from localStorage
+    const token = localStorage.getItem("token");
     const email = localStorage.getItem("userEmail");
     setUserEmail(email);
     
+    if (token) {
+      fetchPaymentHistory(token);
+    } else {
+      // Use mock data if not authenticated
+      loadMockTransactions();
+    }
+    
     // Listen for payment updates
-    window.addEventListener("payment_completed", loadTransactions);
+    window.addEventListener("payment_completed", handlePaymentUpdate);
     
     return () => {
-      window.removeEventListener("payment_completed", loadTransactions);
+      window.removeEventListener("payment_completed", handlePaymentUpdate);
     };
   }, []);
   
-  const loadTransactions = () => {
-    // Format transactions based on bookings for demonstration
-    const formattedTransactions = mockBookings.map(booking => ({
-      id: `TXN-${Math.floor(Math.random() * 1000000)}`,
-      date: booking.journeyDate, 
-      amount: booking.totalFare,
-      status: "Completed",
-      type: "Train Ticket",
-      reference: booking.pnr
-    }));
+  const handlePaymentUpdate = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchPaymentHistory(token);
+    }
+  };
+  
+  const fetchPaymentHistory = async (token: string) => {
+    setLoading(true);
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      };
+      
+      const response = await axios.get('/api/payments/my-payments', config);
+      
+      if (response.data.success) {
+        const formattedTransactions = response.data.data.map((payment: any) => ({
+          id: payment.transactionId,
+          date: new Date(payment.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+          amount: payment.amount,
+          status: payment.status.charAt(0).toUpperCase() + payment.status.slice(1),
+          type: "Train Ticket",
+          reference: payment.bookingId?.pnr || 'N/A'
+        }));
+        
+        setTransactions(formattedTransactions);
+      }
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      toast({
+        title: "Failed to load payment history",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+      // Fall back to mock data
+      loadMockTransactions();
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const loadMockTransactions = () => {
+    // Fallback to mock data for demonstration
+    import('@/utils/mockData').then(({ mockBookings, formatPrice }) => {
+      const formattedTransactions = mockBookings.map(booking => ({
+        id: `TXN-${Math.floor(Math.random() * 1000000)}`,
+        date: booking.journeyDate, 
+        amount: booking.totalFare,
+        status: "Completed",
+        type: "Train Ticket",
+        reference: booking.pnr
+      }));
+      
+      setTransactions(formattedTransactions);
+    });
+  };
+
+  const handleDownloadReceipt = (transaction: any) => {
+    // In a real implementation, this would generate and download a PDF receipt
+    // For now, we'll create a simple text receipt as a downloadable file
+    const receiptContent = `
+    ----- RAILRESERVE PAYMENT RECEIPT -----
+    Transaction ID: ${transaction.id}
+    Date: ${transaction.date}
+    Amount: ₹${transaction.amount.toFixed(2)}
+    Status: ${transaction.status}
+    Type: ${transaction.type}
+    Reference (PNR): ${transaction.reference}
     
-    setTransactions(formattedTransactions);
+    Thank you for choosing RailReserve!
+    `;
+    
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${transaction.id}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Receipt downloaded",
+      description: `Receipt for transaction ${transaction.id} has been downloaded.`,
+    });
   };
 
   return (
@@ -101,59 +185,68 @@ const PaymentHistory = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Reference</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.length > 0 ? (
-                      transactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center">
-                              <Calendar size={14} className="mr-1 text-gray-400" />
-                              {transaction.date}
-                            </div>
-                          </TableCell>
-                          <TableCell>{transaction.id}</TableCell>
-                          <TableCell>{transaction.reference}</TableCell>
-                          <TableCell>{transaction.type}</TableCell>
-                          <TableCell className="font-medium">{formatPrice(transaction.amount)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {transaction.status === "Completed" ? (
-                                <CheckCircle size={14} className="mr-1 text-green-500" />
-                              ) : (
-                                <XCircle size={14} className="mr-1 text-red-500" />
-                              )}
-                              {transaction.status}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <button className="text-railway-600 hover:text-railway-800 flex items-center">
-                              <Download size={14} className="mr-1" />
-                              <span className="text-xs">Receipt</span>
-                            </button>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-10 h-10 border-4 border-t-railway-600 border-railway-200 rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Transaction ID</TableHead>
+                        <TableHead>Reference</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.length > 0 ? (
+                        transactions.map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center">
+                                <Calendar size={14} className="mr-1 text-gray-400" />
+                                {transaction.date}
+                              </div>
+                            </TableCell>
+                            <TableCell>{transaction.id}</TableCell>
+                            <TableCell>{transaction.reference}</TableCell>
+                            <TableCell>{transaction.type}</TableCell>
+                            <TableCell className="font-medium">₹{transaction.amount.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                {transaction.status === "Completed" ? (
+                                  <CheckCircle size={14} className="mr-1 text-green-500" />
+                                ) : (
+                                  <XCircle size={14} className="mr-1 text-red-500" />
+                                )}
+                                {transaction.status}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <button 
+                                className="text-railway-600 hover:text-railway-800 flex items-center"
+                                onClick={() => handleDownloadReceipt(transaction)}
+                              >
+                                <Download size={14} className="mr-1" />
+                                <span className="text-xs">Receipt</span>
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-4">
+                            No transactions found
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-4">
-                          No transactions found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </div>

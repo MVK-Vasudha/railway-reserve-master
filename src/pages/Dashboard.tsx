@@ -7,23 +7,27 @@ import { CustomButton } from "@/components/ui/custom-button";
 import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import TicketDownload from "@/components/booking/TicketDownload";
 import { mockBookings, getTrainById, formatPrice } from "@/utils/mockData";
 import { getUserBookings } from "@/utils/events";
-import { Calendar, Clock, MapPin, Ticket, User, AlertTriangle, CreditCard, Search } from "lucide-react";
+import axios from "axios";
+import { Calendar, Clock, MapPin, Ticket, User, AlertTriangle, CreditCard, Search, Download } from "lucide-react";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
   const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   const [cancelledBookings, setCancelledBookings] = useState<any[]>([]);
+  const [completedBookings, setCompletedBookings] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
-  // Check if user is logged in and load bookings on mount
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("userLoggedIn") === "true";
     const email = localStorage.getItem("userEmail");
     const name = localStorage.getItem("userName");
+    const token = localStorage.getItem("token");
     
     if (!isLoggedIn) {
       toast({
@@ -37,22 +41,73 @@ const Dashboard = () => {
     setUserEmail(email);
     setUserName(name || (email ? email.split('@')[0] : null));
     
-    // Load bookings
-    loadBookings();
+    if (token) {
+      fetchBookings(token);
+    } else {
+      loadMockBookings();
+    }
     
-    // Listen for booking updates
-    window.addEventListener("booking_updated", loadBookings);
+    window.addEventListener("booking_updated", handleBookingUpdate);
     
     return () => {
-      window.removeEventListener("booking_updated", loadBookings);
+      window.removeEventListener("booking_updated", handleBookingUpdate);
     };
   }, [navigate]);
   
-  const loadBookings = () => {
-    // Get bookings from localStorage
+  const handleBookingUpdate = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchBookings(token);
+    }
+  };
+  
+  const fetchBookings = async (token: string) => {
+    setLoading(true);
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      };
+      
+      const response = await axios.get('/api/bookings/my-bookings', config);
+      
+      if (response.data.success) {
+        const allBookings = response.data.data;
+        const today = new Date();
+        
+        const upcoming = allBookings.filter((b: any) => {
+          const journeyDate = new Date(b.journeyDate);
+          return b.status === 'confirmed' && journeyDate >= today;
+        });
+        
+        const completed = allBookings.filter((b: any) => {
+          const journeyDate = new Date(b.journeyDate);
+          return b.status === 'confirmed' && journeyDate < today;
+        });
+        
+        const cancelled = allBookings.filter((b: any) => b.status === 'cancelled');
+        
+        setUpcomingBookings(upcoming);
+        setCompletedBookings(completed);
+        setCancelledBookings(cancelled);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      toast({
+        title: "Failed to load bookings",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+      loadMockBookings();
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const loadMockBookings = () => {
     const userBookings = getUserBookings();
     
-    // If we have user bookings, use those
     if (userBookings && userBookings.length > 0) {
       const upcoming = userBookings.filter((b: any) => b.status === 'confirmed');
       const cancelled = userBookings.filter((b: any) => b.status === 'cancelled');
@@ -60,7 +115,6 @@ const Dashboard = () => {
       setUpcomingBookings(upcoming);
       setCancelledBookings(cancelled);
     } else {
-      // Fall back to mock data if no user bookings
       const upcoming = mockBookings.filter(b => b.status === 'confirmed');
       const cancelled = mockBookings.filter(b => b.status === 'cancelled');
       
@@ -69,28 +123,54 @@ const Dashboard = () => {
     }
   };
 
-  const handleCancelBooking = (bookingId: string) => {
-    // Get current bookings
-    const userBookings = getUserBookings();
+  const handleCancelBooking = async (bookingId: string) => {
+    const token = localStorage.getItem("token");
     
-    // Find and update the cancelled booking
-    const updatedBookings = userBookings.map((booking: any) => {
-      if (booking.id === bookingId) {
-        return { ...booking, status: 'cancelled' };
+    try {
+      if (token) {
+        const config = {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        };
+        
+        const response = await axios.put(`/api/bookings/${bookingId}`, { status: 'cancelled' }, config);
+        
+        if (response.data.success) {
+          toast({
+            title: "Booking Cancelled",
+            description: "Your booking has been cancelled successfully. Refund process initiated.",
+          });
+          
+          fetchBookings(token);
+        }
+      } else {
+        const userBookings = getUserBookings();
+        
+        const updatedBookings = userBookings.map((booking: any) => {
+          if (booking.id === bookingId) {
+            return { ...booking, status: 'cancelled' };
+          }
+          return booking;
+        });
+        
+        localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
+        
+        toast({
+          title: "Booking Cancelled",
+          description: "Your booking has been cancelled successfully. Refund process initiated.",
+        });
+        
+        loadMockBookings();
       }
-      return booking;
-    });
-    
-    // Save back to localStorage
-    localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
-    
-    toast({
-      title: "Booking Cancelled",
-      description: "Your booking has been cancelled successfully. Refund process initiated.",
-    });
-    
-    // Reload bookings to update the UI
-    loadBookings();
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      toast({
+        title: "Failed to cancel booking",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -99,7 +179,6 @@ const Dashboard = () => {
       
       <div className="container mx-auto px-4 py-8 flex-grow">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Sidebar */}
           <div className="md:col-span-1">
             <Card className="glass sticky top-20">
               <CardHeader>
@@ -136,195 +215,68 @@ const Dashboard = () => {
             </Card>
           </div>
           
-          {/* Main Content */}
           <div className="md:col-span-3">
             <div className="mb-6">
               <h1 className="text-2xl font-bold mb-2">My Bookings</h1>
               <p className="text-gray-600">Manage your train bookings and view your journey details</p>
             </div>
             
-            <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-6">
-                <TabsTrigger value="upcoming">Upcoming Journeys</TabsTrigger>
-                <TabsTrigger value="completed">Completed Journeys</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled Bookings</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="upcoming" className="space-y-6 animate-fade-in">
-                {upcomingBookings.length > 0 ? (
-                  upcomingBookings.map((booking) => {
-                    const train = getTrainById(booking.trainId);
-                    if (!train) return null;
-                    
-                    return (
-                      <Card key={booking.id} className="glass overflow-hidden">
-                        <CardContent className="p-0">
-                          <div className="bg-railway-50 p-4 border-b border-gray-200">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <h3 className="font-bold text-lg">{train.name}</h3>
-                                <p className="text-sm text-gray-500">{train.number}</p>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-sm font-medium text-green-600 mb-1">
-                                  Confirmed
-                                </div>
-                                <div className="text-xs bg-railway-100 text-railway-800 px-2 py-1 rounded-full">
-                                  PNR: {booking.pnr}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="p-4">
-                            <div className="grid grid-cols-3 gap-4 mb-4">
-                              <div>
-                                <p className="text-sm text-gray-500">Departure</p>
-                                <p className="text-xl font-bold">{train.departureTime}</p>
-                                <p className="text-sm font-medium">{train.source}</p>
-                              </div>
-                              
-                              <div className="flex flex-col items-center justify-center">
-                                <div className="text-xs text-gray-500 mb-1">{train.duration}</div>
-                                <div className="relative w-full flex items-center justify-center">
-                                  <div className="w-full h-0.5 bg-railway-200"></div>
-                                  <div className="absolute w-2 h-2 rounded-full bg-railway-600 left-0"></div>
-                                  <div className="absolute w-2 h-2 rounded-full bg-railway-600 right-0"></div>
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">{train.distance} km</div>
-                              </div>
-                              
-                              <div className="text-right">
-                                <p className="text-sm text-gray-500">Arrival</p>
-                                <p className="text-xl font-bold">{train.arrivalTime}</p>
-                                <p className="text-sm font-medium">{train.destination}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex flex-wrap items-center text-sm text-gray-600 gap-4 mb-4">
-                              <div className="flex items-center">
-                                <Calendar size={16} className="mr-1 text-railway-600" />
-                                {booking.journeyDate}
-                              </div>
-                              <div className="flex items-center">
-                                <Ticket size={16} className="mr-1 text-railway-600" />
-                                {booking.seatType === 'sleeper' ? 'Sleeper' :
-                                 booking.seatType === 'ac3Tier' ? 'AC 3 Tier' :
-                                 booking.seatType === 'ac2Tier' ? 'AC 2 Tier' : 'AC First Class'}
-                              </div>
-                            </div>
-                            
-                            <Separator className="my-4" />
-                            
-                            <div className="space-y-3">
-                              <h4 className="font-medium">Passenger Details</h4>
-                              {booking.passengers.map((passenger, index) => (
-                                <div key={index} className="flex justify-between items-center">
-                                  <div className="flex items-center">
-                                    <User size={16} className="mr-2 text-gray-500" />
-                                    <span>{passenger.name}</span>
-                                    <span className="text-gray-500 text-sm ml-2">
-                                      ({passenger.age} yrs, {passenger.gender})
-                                    </span>
-                                  </div>
-                                  <div className="text-sm font-medium">
-                                    {passenger.seatNumber}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            
-                            <Separator className="my-4" />
-                            
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <span className="text-gray-600 text-sm">Total Fare</span>
-                                <p className="font-bold text-lg">{formatPrice(booking.totalFare)}</p>
-                              </div>
-                              <CustomButton
-                                variant="outline"
-                                onClick={() => handleCancelBooking(booking.id)}
-                                className="text-red-500 border-red-200 hover:bg-red-50"
-                              >
-                                <AlertTriangle className="mr-2 h-4 w-4" />
-                                Cancel Booking
-                              </CustomButton>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Ticket className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming bookings</h3>
-                    <p className="text-gray-500 mb-6">You don't have any upcoming train journeys.</p>
-                    <Link to="/search">
-                      <CustomButton>
-                        <Search className="mr-2 h-4 w-4" />
-                        Search Trains
-                      </CustomButton>
-                    </Link>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="completed" className="animate-fade-in">
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No completed journeys</h3>
-                  <p className="text-gray-500 mb-6">Your completed journeys will appear here.</p>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="cancelled" className="animate-fade-in">
-                {cancelledBookings.length > 0 ? (
-                  <div className="space-y-6">
-                    {cancelledBookings.map((booking) => {
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-12 h-12 border-4 border-t-railway-600 border-railway-200 rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-6">
+                  <TabsTrigger value="upcoming">Upcoming Journeys</TabsTrigger>
+                  <TabsTrigger value="completed">Completed Journeys</TabsTrigger>
+                  <TabsTrigger value="cancelled">Cancelled Bookings</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="upcoming" className="space-y-6 animate-fade-in">
+                  {upcomingBookings.length > 0 ? (
+                    upcomingBookings.map((booking) => {
                       const train = getTrainById(booking.trainId);
                       if (!train) return null;
                       
                       return (
                         <Card key={booking.id} className="glass overflow-hidden">
                           <CardContent className="p-0">
-                            <div className="bg-gray-100 p-4 border-b border-gray-200">
+                            <div className="bg-railway-50 p-4 border-b border-gray-200">
                               <div className="flex justify-between items-center">
                                 <div>
                                   <h3 className="font-bold text-lg">{train.name}</h3>
                                   <p className="text-sm text-gray-500">{train.number}</p>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-sm font-medium text-red-600 mb-1">
-                                    Cancelled
+                                  <div className="text-sm font-medium text-green-600 mb-1">
+                                    Confirmed
                                   </div>
-                                  <div className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">
+                                  <div className="text-xs bg-railway-100 text-railway-800 px-2 py-1 rounded-full">
                                     PNR: {booking.pnr}
                                   </div>
                                 </div>
                               </div>
                             </div>
                             
-                            <div className="p-4 opacity-75">
+                            <div className="p-4">
                               <div className="grid grid-cols-3 gap-4 mb-4">
                                 <div>
                                   <p className="text-sm text-gray-500">Departure</p>
                                   <p className="text-xl font-bold">{train.departureTime}</p>
                                   <p className="text-sm font-medium">{train.source}</p>
                                 </div>
+                                
                                 <div className="flex flex-col items-center justify-center">
                                   <div className="text-xs text-gray-500 mb-1">{train.duration}</div>
                                   <div className="relative w-full flex items-center justify-center">
-                                    <div className="w-full h-0.5 bg-gray-200"></div>
-                                    <div className="absolute w-2 h-2 rounded-full bg-gray-400 left-0"></div>
-                                    <div className="absolute w-2 h-2 rounded-full bg-gray-400 right-0"></div>
+                                    <div className="w-full h-0.5 bg-railway-200"></div>
+                                    <div className="absolute w-2 h-2 rounded-full bg-railway-600 left-0"></div>
+                                    <div className="absolute w-2 h-2 rounded-full bg-railway-600 right-0"></div>
                                   </div>
                                   <div className="text-xs text-gray-500 mt-1">{train.distance} km</div>
                                 </div>
+                                
                                 <div className="text-right">
                                   <p className="text-sm text-gray-500">Arrival</p>
                                   <p className="text-xl font-bold">{train.arrivalTime}</p>
@@ -334,38 +286,240 @@ const Dashboard = () => {
                               
                               <div className="flex flex-wrap items-center text-sm text-gray-600 gap-4 mb-4">
                                 <div className="flex items-center">
-                                  <Calendar size={16} className="mr-1 text-gray-600" />
+                                  <Calendar size={16} className="mr-1 text-railway-600" />
                                   {booking.journeyDate}
                                 </div>
                                 <div className="flex items-center">
-                                  <Ticket size={16} className="mr-1 text-gray-600" />
+                                  <Ticket size={16} className="mr-1 text-railway-600" />
                                   {booking.seatType === 'sleeper' ? 'Sleeper' :
                                    booking.seatType === 'ac3Tier' ? 'AC 3 Tier' :
                                    booking.seatType === 'ac2Tier' ? 'AC 2 Tier' : 'AC First Class'}
                                 </div>
                               </div>
                               
-                              <div className="p-4 mt-4 bg-red-50 rounded-md text-red-700 text-sm">
-                                <AlertTriangle size={16} className="inline-block mr-2" />
-                                This booking has been cancelled. Refund will be processed within 3-5 business days.
+                              <Separator className="my-4" />
+                              
+                              <div className="space-y-3">
+                                <h4 className="font-medium">Passenger Details</h4>
+                                {booking.passengers.map((passenger, index) => (
+                                  <div key={index} className="flex justify-between items-center">
+                                    <div className="flex items-center">
+                                      <User size={16} className="mr-2 text-gray-500" />
+                                      <span>{passenger.name}</span>
+                                      <span className="text-gray-500 text-sm ml-2">
+                                        ({passenger.age} yrs, {passenger.gender})
+                                      </span>
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                      {passenger.seatNumber}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              <Separator className="my-4" />
+                              
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <span className="text-gray-600 text-sm">Total Fare</span>
+                                  <p className="font-bold text-lg">{formatPrice(booking.totalFare)}</p>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <TicketDownload booking={booking} train={train} />
+                                  <CustomButton
+                                    variant="outline"
+                                    onClick={() => handleCancelBooking(booking.id)}
+                                    className="text-red-500 border-red-200 hover:bg-red-50"
+                                  >
+                                    <AlertTriangle className="mr-2 h-4 w-4" />
+                                    Cancel Booking
+                                  </CustomButton>
+                                </div>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
                       );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <AlertTriangle className="h-8 w-8 text-gray-400" />
+                    })
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Ticket className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming bookings</h3>
+                      <p className="text-gray-500 mb-6">You don't have any upcoming train journeys.</p>
+                      <Link to="/search">
+                        <CustomButton>
+                          <Search className="mr-2 h-4 w-4" />
+                          Search Trains
+                        </CustomButton>
+                      </Link>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No cancelled bookings</h3>
-                    <p className="text-gray-500">You don't have any cancelled bookings.</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="completed" className="animate-fade-in">
+                  {completedBookings && completedBookings.length > 0 ? (
+                    <div className="space-y-6">
+                      {completedBookings.map((booking) => {
+                        const train = getTrainById(booking.trainId);
+                        if (!train) return null;
+                        
+                        return (
+                          <Card key={booking.id} className="glass overflow-hidden">
+                            <CardContent className="p-0">
+                              <div className="bg-gray-100 p-4 border-b border-gray-200">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <h3 className="font-bold text-lg">{train.name}</h3>
+                                    <p className="text-sm text-gray-500">{train.number}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-sm font-medium text-blue-600 mb-1">
+                                      Completed
+                                    </div>
+                                    <div className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">
+                                      PNR: {booking.pnr}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="p-4">
+                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                  <div>
+                                    <p className="text-sm text-gray-500">Departure</p>
+                                    <p className="text-xl font-bold">{train.departureTime}</p>
+                                    <p className="text-sm font-medium">{train.source}</p>
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center">
+                                    <div className="text-xs text-gray-500 mb-1">{train.duration}</div>
+                                    <div className="relative w-full flex items-center justify-center">
+                                      <div className="w-full h-0.5 bg-gray-200"></div>
+                                      <div className="absolute w-2 h-2 rounded-full bg-gray-400 left-0"></div>
+                                      <div className="absolute w-2 h-2 rounded-full bg-gray-400 right-0"></div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">{train.distance} km</div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm text-gray-500">Arrival</p>
+                                    <p className="text-xl font-bold">{train.arrivalTime}</p>
+                                    <p className="text-sm font-medium">{train.destination}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-wrap items-center text-sm text-gray-600 gap-4 mb-4">
+                                  <div className="flex items-center">
+                                    <Calendar size={16} className="mr-1 text-gray-600" />
+                                    {booking.journeyDate}
+                                  </div>
+                                </div>
+                                
+                                <div className="flex justify-end">
+                                  <TicketDownload booking={booking} train={train} />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Clock className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No completed journeys</h3>
+                      <p className="text-gray-500 mb-6">Your completed journeys will appear here.</p>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="cancelled" className="animate-fade-in">
+                  {cancelledBookings.length > 0 ? (
+                    <div className="space-y-6">
+                      {cancelledBookings.map((booking) => {
+                        const train = getTrainById(booking.trainId);
+                        if (!train) return null;
+                        
+                        return (
+                          <Card key={booking.id} className="glass overflow-hidden">
+                            <CardContent className="p-0">
+                              <div className="bg-gray-100 p-4 border-b border-gray-200">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <h3 className="font-bold text-lg">{train.name}</h3>
+                                    <p className="text-sm text-gray-500">{train.number}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-sm font-medium text-red-600 mb-1">
+                                      Cancelled
+                                    </div>
+                                    <div className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">
+                                      PNR: {booking.pnr}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="p-4 opacity-75">
+                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                  <div>
+                                    <p className="text-sm text-gray-500">Departure</p>
+                                    <p className="text-xl font-bold">{train.departureTime}</p>
+                                    <p className="text-sm font-medium">{train.source}</p>
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center">
+                                    <div className="text-xs text-gray-500 mb-1">{train.duration}</div>
+                                    <div className="relative w-full flex items-center justify-center">
+                                      <div className="w-full h-0.5 bg-gray-200"></div>
+                                      <div className="absolute w-2 h-2 rounded-full bg-gray-400 left-0"></div>
+                                      <div className="absolute w-2 h-2 rounded-full bg-gray-400 right-0"></div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">{train.distance} km</div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm text-gray-500">Arrival</p>
+                                    <p className="text-xl font-bold">{train.arrivalTime}</p>
+                                    <p className="text-sm font-medium">{train.destination}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-wrap items-center text-sm text-gray-600 gap-4 mb-4">
+                                  <div className="flex items-center">
+                                    <Calendar size={16} className="mr-1 text-gray-600" />
+                                    {booking.journeyDate}
+                                  </div>
+                                  <div className="flex items-center">
+                                    <Ticket size={16} className="mr-1 text-gray-600" />
+                                    {booking.seatType === 'sleeper' ? 'Sleeper' :
+                                     booking.seatType === 'ac3Tier' ? 'AC 3 Tier' :
+                                     booking.seatType === 'ac2Tier' ? 'AC 2 Tier' : 'AC First Class'}
+                                  </div>
+                                </div>
+                                
+                                <div className="p-4 mt-4 bg-red-50 rounded-md text-red-700 text-sm">
+                                  <AlertTriangle size={16} className="inline-block mr-2" />
+                                  This booking has been cancelled. Refund will be processed within 3-5 business days.
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No cancelled bookings</h3>
+                      <p className="text-gray-500">You don't have any cancelled bookings.</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
         </div>
       </div>
