@@ -51,8 +51,22 @@ export const simulateSuccessfulPayment = (bookingDetails?: any) => {
       bookingDetails.journeyDate = bookingDetails.date;
     }
     
-    existingBookings.push(bookingDetails);
-    localStorage.setItem("userBookings", JSON.stringify(existingBookings));
+    // Ensure we store seatClass and seatType consistently
+    if (bookingDetails.class && !bookingDetails.seatClass) {
+      bookingDetails.seatClass = bookingDetails.class;
+    }
+    
+    if (bookingDetails.seatClass && !bookingDetails.seatType) {
+      bookingDetails.seatType = bookingDetails.seatClass;
+    }
+    
+    // Clean up any duplicate booking with same PNR
+    const filteredBookings = existingBookings.filter((booking: any) => 
+      booking.pnr !== bookingDetails.pnr
+    );
+    
+    filteredBookings.push(bookingDetails);
+    localStorage.setItem("userBookings", JSON.stringify(filteredBookings));
   }
   
   // Trigger events to update UI components

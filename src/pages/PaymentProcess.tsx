@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +62,7 @@ const PaymentProcess = () => {
           totalFare: bookingData.fare,
           passengers: bookingData.passengers,
           seatClass: bookingData.class,
+          seatType: bookingData.class, // Add seatType for Dashboard compatibility
           trainId: bookingData.train.id,
           train: bookingData.train  // Include the train data for local storage
         };

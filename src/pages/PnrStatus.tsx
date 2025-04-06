@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { CustomButton } from "@/components/ui/custom-button";
 import { toast } from "@/hooks/use-toast";
@@ -11,6 +10,8 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { User, Search, Calendar, Clock, MapPin, Ticket } from "lucide-react";
 import { mockBookings, getTrainById } from "@/utils/mockData";
+import { getUserBookings } from "@/utils/events";
+import axios from "axios";
 
 const PnrStatus = () => {
   const [pnrNumber, setPnrNumber] = useState("");
@@ -23,7 +24,7 @@ const PnrStatus = () => {
     if (!pnrNumber || pnrNumber.length < 8) {
       toast({
         title: "Invalid PNR",
-        description: "Please enter a valid 10-digit PNR number",
+        description: "Please enter a valid PNR number",
         variant: "destructive",
       });
       return;
@@ -31,8 +32,29 @@ const PnrStatus = () => {
     
     setIsSearching(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    // Try to find in localStorage first
+    const userBookings = getUserBookings();
+    const localBooking = userBookings.find((b: any) => b.pnr === pnrNumber);
+    
+    if (localBooking) {
+      const train = localBooking.train || getTrainById(localBooking.trainId);
+      if (train) {
+        setSearchResult({ booking: localBooking, train });
+        toast({
+          title: "PNR Found",
+          description: "Your booking details have been retrieved",
+        });
+        setIsSearching(false);
+        return;
+      }
+    }
+    
+    // Try with API if available
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchPnrStatus(token, pnrNumber);
+    } else {
+      // Fallback to mock data
       const booking = mockBookings.find(b => b.pnr === pnrNumber);
       
       if (booking) {
@@ -51,7 +73,62 @@ const PnrStatus = () => {
       }
       
       setIsSearching(false);
-    }, 1000);
+    }
+  };
+  
+  const fetchPnrStatus = async (token: string, pnr: string) => {
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      };
+      
+      const response = await axios.get(`/api/pnr/${pnr}`, config);
+      
+      if (response.data.success) {
+        const pnrData = response.data.data;
+        setSearchResult({
+          booking: {
+            pnr: pnrData.pnr,
+            status: pnrData.status,
+            journeyDate: pnrData.journeyDate,
+            passengers: [], // We might not have detailed passenger info from PNR API
+            totalFare: pnrData.totalFare,
+            seatClass: pnrData.seatClass,
+            bookingDate: pnrData.bookingDate
+          },
+          train: {
+            name: pnrData.trainName,
+            number: pnrData.trainNumber,
+            source: pnrData.source,
+            destination: pnrData.destination,
+            departureTime: pnrData.departureTime,
+            arrivalTime: pnrData.arrivalTime
+          }
+        });
+        
+        toast({
+          title: "PNR Found",
+          description: "Your booking details have been retrieved",
+        });
+      } else {
+        toast({
+          title: "PNR Not Found",
+          description: "No booking found with the provided PNR number",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching PNR status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch PNR status. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (

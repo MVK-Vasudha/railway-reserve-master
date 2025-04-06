@@ -58,6 +58,8 @@ const Dashboard = () => {
     const token = localStorage.getItem("token");
     if (token) {
       fetchBookings(token);
+    } else {
+      loadMockBookings();
     }
   };
   
@@ -109,10 +111,38 @@ const Dashboard = () => {
     const userBookings = getUserBookings();
     
     if (userBookings && userBookings.length > 0) {
-      const upcoming = userBookings.filter((b: any) => b.status === 'confirmed');
+      const today = new Date();
+      
+      const upcoming = userBookings.filter((b: any) => {
+        let journeyDate;
+        if (b.journeyDate) {
+          journeyDate = new Date(b.journeyDate);
+        } else if (b.date) {
+          journeyDate = new Date(b.date);
+        } else {
+          return false;
+        }
+        
+        return b.status === 'confirmed' && journeyDate >= today;
+      });
+      
+      const completed = userBookings.filter((b: any) => {
+        let journeyDate;
+        if (b.journeyDate) {
+          journeyDate = new Date(b.journeyDate);
+        } else if (b.date) {
+          journeyDate = new Date(b.date);
+        } else {
+          return false;
+        }
+        
+        return b.status === 'confirmed' && journeyDate < today;
+      });
+      
       const cancelled = userBookings.filter((b: any) => b.status === 'cancelled');
       
       setUpcomingBookings(upcoming);
+      setCompletedBookings(completed);
       setCancelledBookings(cancelled);
     } else {
       const upcoming = mockBookings.filter(b => b.status === 'confirmed');
