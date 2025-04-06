@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,15 +50,22 @@ const PaymentProcess = () => {
         setPaymentComplete(true);
         
         // Generate PNR and store booking in history
-        const existingBookings = JSON.parse(localStorage.getItem('bookingHistory') || '[]');
-        const newBooking = {
-          ...bookingData,
-          bookingDate: new Date().toISOString().split('T')[0],
-          status: 'confirmed'
+        const date = new Date();
+        const formattedBooking = {
+          id: `book${Date.now()}`,
+          pnr: bookingData.pnr || `PNR${Math.floor(1000000 + Math.random() * 9000000)}`,
+          bookingDate: date.toISOString().split('T')[0],
+          journeyDate: bookingData.date,
+          status: 'confirmed',
+          totalFare: bookingData.fare,
+          passengers: bookingData.passengers,
+          seatClass: bookingData.class,
+          trainId: bookingData.train.id,
+          train: bookingData.train  // Include the train data for local storage
         };
         
-        existingBookings.push(newBooking);
-        localStorage.setItem('bookingHistory', JSON.stringify(existingBookings));
+        // Use simulateSuccessfulPayment to store the booking and trigger events
+        simulateSuccessfulPayment(formattedBooking);
         
         // Clear current booking
         localStorage.removeItem('currentBooking');

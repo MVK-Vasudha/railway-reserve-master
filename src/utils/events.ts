@@ -30,12 +30,28 @@ export const simulateSuccessfulPayment = (bookingDetails?: any) => {
   // Store booking in localStorage if provided
   if (bookingDetails) {
     const existingBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
-    existingBookings.push({
-      ...bookingDetails,
-      id: `book${Date.now()}`,
-      pnr: `PNR${Math.floor(1000000 + Math.random() * 9000000)}`,
-      status: "confirmed"
-    });
+    
+    // Generate PNR if not already present
+    if (!bookingDetails.pnr) {
+      bookingDetails.pnr = `PNR${Math.floor(1000000 + Math.random() * 9000000)}`;
+    }
+    
+    // Add unique ID if not present
+    if (!bookingDetails.id) {
+      bookingDetails.id = `book${Date.now()}`;
+    }
+    
+    // Set booking status if not specified
+    if (!bookingDetails.status) {
+      bookingDetails.status = "confirmed";
+    }
+    
+    // Add journey date if necessary
+    if (!bookingDetails.journeyDate && bookingDetails.date) {
+      bookingDetails.journeyDate = bookingDetails.date;
+    }
+    
+    existingBookings.push(bookingDetails);
     localStorage.setItem("userBookings", JSON.stringify(existingBookings));
   }
   

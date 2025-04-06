@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Download, Ticket } from "lucide-react";
+import { Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface TicketDownloadProps {
@@ -54,13 +54,13 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
 
 PNR NUMBER: ${booking.pnr}
 BOOKING DATE: ${booking.bookingDate || new Date().toLocaleDateString()}
-JOURNEY DATE: ${booking.journeyDate}
+JOURNEY DATE: ${booking.journeyDate || booking.date || 'Not specified'}
 
 TRAIN DETAILS:
   ${train.number} - ${train.name}
   From: ${train.source}
   To: ${train.destination}
-  Departure: ${train.departureTime} (${booking.journeyDate})
+  Departure: ${train.departureTime} (${booking.journeyDate || booking.date || 'Not specified'})
   Arrival: ${train.arrivalTime}
   Duration: ${train.duration}
   Distance: ${train.distance} km
