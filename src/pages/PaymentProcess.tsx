@@ -64,7 +64,8 @@ const PaymentProcess = () => {
           seatClass: bookingData.class,
           seatType: bookingData.class, // Add seatType for Dashboard compatibility
           trainId: bookingData.train.id,
-          train: bookingData.train  // Include the train data for local storage
+          train: bookingData.train,  // Include the train data for local storage
+          timestamp: Date.now()
         };
         
         // Use simulateSuccessfulPayment to store the booking and trigger events

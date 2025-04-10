@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,8 @@ const PnrStatus = () => {
     const localBooking = getBookingByPnr(pnrNumber);
     
     if (localBooking) {
+      console.log("Found booking in localStorage:", localBooking);
+      
       // We already have the train data in the booking
       const train = localBooking.train || getTrainById(localBooking.trainId);
       if (train) {
@@ -53,7 +56,7 @@ const PnrStatus = () => {
     if (token) {
       fetchPnrStatus(token, pnrNumber);
     } else {
-      // Fallback to mock data
+      // Fallback to mock data if not found in localStorage
       const booking = mockBookings.find(b => b.pnr === pnrNumber);
       
       if (booking) {
@@ -122,6 +125,22 @@ const PnrStatus = () => {
       }
     } catch (error) {
       console.error('Error fetching PNR status:', error);
+      
+      // Try localStorage one more time as a fallback
+      const localBooking = getBookingByPnr(pnr);
+      if (localBooking) {
+        const train = localBooking.train || getTrainById(localBooking.trainId);
+        if (train) {
+          setSearchResult({ booking: localBooking, train });
+          toast({
+            title: "PNR Found Locally",
+            description: "Your booking details have been retrieved from local storage",
+          });
+          setIsSearching(false);
+          return;
+        }
+      }
+      
       toast({
         title: "Error",
         description: "Failed to fetch PNR status. Please try again later.",

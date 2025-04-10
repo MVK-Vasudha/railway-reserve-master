@@ -81,6 +81,9 @@ export const simulateSuccessfulPayment = (bookingDetails?: any) => {
     filteredBookings.push(bookingDetails);
     localStorage.setItem("userBookings", JSON.stringify(filteredBookings));
     
+    // Create a payment record for this booking
+    addPaymentRecord(bookingDetails);
+    
     // Log successful booking for debugging
     console.log("Booking saved to localStorage:", bookingDetails);
   }
@@ -88,6 +91,36 @@ export const simulateSuccessfulPayment = (bookingDetails?: any) => {
   // Trigger events to update UI components
   triggerPaymentUpdate();
   triggerBookingUpdate();
+};
+
+/**
+ * Add a payment record to localStorage
+ */
+export const addPaymentRecord = (bookingDetails: any) => {
+  const payments = JSON.parse(localStorage.getItem("userPayments") || "[]");
+  
+  const newPayment = {
+    id: `TXN-${Math.floor(Math.random() * 1000000)}`,
+    date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    amount: bookingDetails.totalFare || bookingDetails.fare,
+    status: "Completed",
+    type: "Train Ticket",
+    reference: bookingDetails.pnr,
+    timestamp: Date.now(),
+    bookingId: bookingDetails.id
+  };
+  
+  payments.push(newPayment);
+  localStorage.setItem("userPayments", JSON.stringify(payments));
+  
+  console.log("Payment record created:", newPayment);
+};
+
+/**
+ * Get user payments from localStorage
+ */
+export const getUserPayments = () => {
+  return JSON.parse(localStorage.getItem("userPayments") || "[]");
 };
 
 /**
@@ -201,7 +234,10 @@ export const cancelBooking = (bookingId: string): boolean => {
   const updatedBookings = bookings.map((booking: any) => {
     if (booking.id === bookingId) {
       found = true;
-      return { ...booking, status: "cancelled" };
+      // Create a refund payment record
+      const cancelledBooking = { ...booking, status: "cancelled" };
+      addRefundRecord(cancelledBooking);
+      return cancelledBooking;
     }
     return booking;
   });
@@ -209,10 +245,34 @@ export const cancelBooking = (bookingId: string): boolean => {
   if (found) {
     localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
     triggerBookingUpdate();
+    triggerPaymentUpdate(); // Trigger payment update for the refund
     return true;
   }
   
   return false;
+};
+
+/**
+ * Add a refund record to localStorage
+ */
+export const addRefundRecord = (bookingDetails: any) => {
+  const payments = JSON.parse(localStorage.getItem("userPayments") || "[]");
+  
+  const newRefund = {
+    id: `REF-${Math.floor(Math.random() * 1000000)}`,
+    date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    amount: bookingDetails.totalFare || bookingDetails.fare,
+    status: "Refunded",
+    type: "Ticket Refund",
+    reference: bookingDetails.pnr,
+    timestamp: Date.now(),
+    bookingId: bookingDetails.id
+  };
+  
+  payments.push(newRefund);
+  localStorage.setItem("userPayments", JSON.stringify(payments));
+  
+  console.log("Refund record created:", newRefund);
 };
 
 /**
@@ -222,4 +282,3 @@ export const getBookingByPnr = (pnr: string) => {
   const bookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
   return bookings.find((booking: any) => booking.pnr === pnr) || null;
 };
-

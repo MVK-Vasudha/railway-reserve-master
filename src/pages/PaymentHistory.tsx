@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import Footer from "@/components/layout/Footer";
 import { User, CreditCard, Ticket, Search, Download, Calendar, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
+import { getUserPayments } from "@/utils/events";
 
 const PaymentHistory = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -24,8 +24,8 @@ const PaymentHistory = () => {
     if (token) {
       fetchPaymentHistory(token);
     } else {
-      // Use mock data if not authenticated
-      loadMockTransactions();
+      // Use localStorage data when no token is available
+      loadLocalPayments();
     }
     
     // Listen for payment updates
@@ -40,6 +40,8 @@ const PaymentHistory = () => {
     const token = localStorage.getItem("token");
     if (token) {
       fetchPaymentHistory(token);
+    } else {
+      loadLocalPayments();
     }
   };
   
@@ -70,30 +72,26 @@ const PaymentHistory = () => {
       console.error('Error fetching payment history:', error);
       toast({
         title: "Failed to load payment history",
-        description: "Please try again later",
-        variant: "destructive",
+        description: "Using local payment data instead",
       });
-      // Fall back to mock data
-      loadMockTransactions();
+      // Fall back to local payment data
+      loadLocalPayments();
     } finally {
       setLoading(false);
     }
   };
   
-  const loadMockTransactions = () => {
-    // Fallback to mock data for demonstration
-    import('@/utils/mockData').then(({ mockBookings, formatPrice }) => {
-      const formattedTransactions = mockBookings.map(booking => ({
-        id: `TXN-${Math.floor(Math.random() * 1000000)}`,
-        date: booking.journeyDate, 
-        amount: booking.totalFare,
-        status: "Completed",
-        type: "Train Ticket",
-        reference: booking.pnr
-      }));
-      
-      setTransactions(formattedTransactions);
+  const loadLocalPayments = () => {
+    // Get payments directly from localStorage
+    const payments = getUserPayments();
+    
+    // Sort payments by timestamp (newest first)
+    const sortedPayments = [...payments].sort((a, b) => {
+      return (b.timestamp || 0) - (a.timestamp || 0);
     });
+    
+    setTransactions(sortedPayments);
+    setLoading(false);
   };
 
   const handleDownloadReceipt = (transaction: any) => {
