@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TicketDownload from "@/components/booking/TicketDownload";
-import { formatPrice } from "@/utils/mockData";
+import { formatPrice, getTrainById } from "@/utils/mockData";
 import { getUserBookings, cancelBooking, clearAllData, createDummyBooking, simulateSuccessfulPayment } from "@/utils/events";
 import axios from "axios";
 import { Calendar, Clock, MapPin, Ticket, User, AlertTriangle, CreditCard, Search, Download } from "lucide-react";
