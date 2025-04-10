@@ -1,14 +1,16 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CustomButton } from "@/components/ui/custom-button";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { User, CreditCard, Ticket, Search, Download, Calendar, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
-import { getUserPayments } from "@/utils/events";
+import { getUserPayments, clearAllData, createDummyBooking, simulateSuccessfulPayment } from "@/utils/events";
 
 const PaymentHistory = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -19,7 +21,7 @@ const PaymentHistory = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const email = localStorage.getItem("userEmail");
-    setUserEmail(email);
+    setUserEmail(email || "demo@example.com");
     
     if (token) {
       fetchPaymentHistory(token);
@@ -37,6 +39,7 @@ const PaymentHistory = () => {
   }, []);
   
   const handlePaymentUpdate = () => {
+    console.log("Payment update event detected");
     const token = localStorage.getItem("token");
     if (token) {
       fetchPaymentHistory(token);
@@ -83,7 +86,9 @@ const PaymentHistory = () => {
   
   const loadLocalPayments = () => {
     // Get payments directly from localStorage
+    setLoading(true);
     const payments = getUserPayments();
+    console.log("Loaded local payments:", payments.length);
     
     // Sort payments by timestamp (newest first)
     const sortedPayments = [...payments].sort((a, b) => {
@@ -123,6 +128,27 @@ const PaymentHistory = () => {
       title: "Receipt downloaded",
       description: `Receipt for transaction ${transaction.id} has been downloaded.`,
     });
+  };
+  
+  // FOR TESTING ONLY: Creates a dummy booking for testing
+  const handleCreateDummyBooking = () => {
+    const dummyBooking = createDummyBooking();
+    simulateSuccessfulPayment(dummyBooking);
+    toast({
+      title: "Test Booking Created",
+      description: "A dummy booking has been added with a payment record",
+    });
+    loadLocalPayments(); // Refresh the payments list
+  };
+  
+  // FOR TESTING ONLY: Clears all data from localStorage
+  const handleClearData = () => {
+    clearAllData();
+    toast({
+      title: "Data Cleared",
+      description: "All bookings and payments have been cleared",
+    });
+    loadLocalPayments(); // Refresh the payments list
   };
 
   return (
@@ -164,6 +190,27 @@ const PaymentHistory = () => {
                     <span>Payment History</span>
                   </Link>
                 </nav>
+                
+                {/* Testing Controls - REMOVE IN PRODUCTION */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-500 mb-2">Testing Options:</p>
+                  <div className="space-y-2">
+                    <CustomButton 
+                      onClick={handleCreateDummyBooking}
+                      variant="outline"
+                      className="w-full text-sm"
+                    >
+                      Create Test Payment
+                    </CustomButton>
+                    <CustomButton 
+                      onClick={handleClearData}
+                      variant="outline" 
+                      className="w-full text-sm text-red-500"
+                    >
+                      Clear All Data
+                    </CustomButton>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

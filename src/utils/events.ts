@@ -120,14 +120,16 @@ export const addPaymentRecord = (bookingDetails: any) => {
  * Get user payments from localStorage
  */
 export const getUserPayments = () => {
-  return JSON.parse(localStorage.getItem("userPayments") || "[]");
+  const payments = JSON.parse(localStorage.getItem("userPayments") || "[]");
+  return payments.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
 };
 
 /**
  * Get user bookings from localStorage
  */
 export const getUserBookings = () => {
-  return JSON.parse(localStorage.getItem("userBookings") || "[]");
+  const bookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
+  return bookings.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
 };
 
 /**
@@ -281,4 +283,43 @@ export const addRefundRecord = (bookingDetails: any) => {
 export const getBookingByPnr = (pnr: string) => {
   const bookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
   return bookings.find((booking: any) => booking.pnr === pnr) || null;
+};
+
+/**
+ * Clear all localStorage data (for testing)
+ */
+export const clearAllData = () => {
+  localStorage.removeItem("userBookings");
+  localStorage.removeItem("userPayments");
+  localStorage.removeItem("availableTrains");
+  console.log("All localStorage data cleared");
+};
+
+/**
+ * Get a dummy booking for testing
+ */
+export const createDummyBooking = () => {
+  const train = defaultTrains[0];
+  const booking = {
+    id: `book${Date.now()}`,
+    pnr: `PNR${Math.floor(1000000 + Math.random() * 9000000)}`,
+    bookingDate: new Date().toISOString().split('T')[0],
+    journeyDate: "2025-04-15",
+    status: "confirmed",
+    totalFare: train.coaches.sleeper.fare,
+    passengers: [
+      {
+        name: "Test User",
+        age: 30,
+        gender: "Male"
+      }
+    ],
+    seatClass: "sleeper",
+    seatType: "sleeper",
+    trainId: train.id,
+    train: train,
+    timestamp: Date.now()
+  };
+  
+  return booking;
 };

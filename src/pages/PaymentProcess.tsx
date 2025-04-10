@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { CreditCard, CheckCircle, Calendar, Train as TrainIcon, Clock, MapPin, User } from "lucide-react";
-import { simulateSuccessfulPayment } from "@/utils/events";
+import { simulateSuccessfulPayment, clearAllData, createDummyBooking } from "@/utils/events";
 
 const PaymentProcess = () => {
   const navigate = useNavigate();
@@ -32,7 +32,9 @@ const PaymentProcess = () => {
     }
     
     try {
-      setBookingData(JSON.parse(storedBooking));
+      const parsedBooking = JSON.parse(storedBooking);
+      console.log("Loaded booking data:", parsedBooking);
+      setBookingData(parsedBooking);
     } catch (error) {
       console.error("Error parsing booking data:", error);
       navigate('/search');
@@ -51,6 +53,11 @@ const PaymentProcess = () => {
       setTimeout(() => {
         setPaymentComplete(true);
         
+        if (!bookingData) {
+          console.error("Booking data missing when payment completed");
+          return;
+        }
+        
         // Generate PNR and store booking in history
         const date = new Date();
         const formattedBooking = {
@@ -67,6 +74,8 @@ const PaymentProcess = () => {
           train: bookingData.train,  // Include the train data for local storage
           timestamp: Date.now()
         };
+        
+        console.log("Saving formatted booking:", formattedBooking);
         
         // Use simulateSuccessfulPayment to store the booking and trigger events
         simulateSuccessfulPayment(formattedBooking);
@@ -87,6 +96,25 @@ const PaymentProcess = () => {
   const handleContinue = () => {
     navigate('/dashboard');
   };
+  
+  // FOR TESTING ONLY: Creates a dummy booking for testing
+  const handleCreateDummyBooking = () => {
+    const dummyBooking = createDummyBooking();
+    simulateSuccessfulPayment(dummyBooking);
+    toast({
+      title: "Test Booking Created",
+      description: "A dummy booking has been added to your bookings",
+    });
+  };
+  
+  // FOR TESTING ONLY: Clears all data from localStorage
+  const handleClearData = () => {
+    clearAllData();
+    toast({
+      title: "Data Cleared",
+      description: "All bookings and payments have been cleared",
+    });
+  };
 
   if (!bookingData) {
     return (
@@ -96,6 +124,25 @@ const PaymentProcess = () => {
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-t-railway-600 border-railway-200 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Loading booking information...</p>
+            
+            {/* Testing Controls - REMOVE IN PRODUCTION */}
+            <div className="mt-8 space-y-4">
+              <p className="text-sm text-gray-500">Testing Options:</p>
+              <CustomButton 
+                onClick={handleCreateDummyBooking}
+                variant="outline"
+                className="mx-2"
+              >
+                Create Test Booking
+              </CustomButton>
+              <CustomButton 
+                onClick={handleClearData}
+                variant="outline" 
+                className="mx-2 text-red-500"
+              >
+                Clear All Data
+              </CustomButton>
+            </div>
           </div>
         </div>
         <Footer />

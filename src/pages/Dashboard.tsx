@@ -8,8 +8,8 @@ import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TicketDownload from "@/components/booking/TicketDownload";
-import { mockBookings, getTrainById, formatPrice } from "@/utils/mockData";
-import { getUserBookings, cancelBooking } from "@/utils/events";
+import { formatPrice } from "@/utils/mockData";
+import { getUserBookings, cancelBooking, clearAllData, createDummyBooking, simulateSuccessfulPayment } from "@/utils/events";
 import axios from "axios";
 import { Calendar, Clock, MapPin, Ticket, User, AlertTriangle, CreditCard, Search, Download } from "lucide-react";
 
@@ -30,16 +30,20 @@ const Dashboard = () => {
     const token = localStorage.getItem("token");
     
     if (!isLoggedIn) {
+      // For the demo, we'll allow non-logged in users to view the dashboard
+      // but in a real app, we would redirect to login
+      /*
       toast({
         title: "Not logged in",
         description: "You need to log in to view your bookings",
       });
       navigate("/login");
       return;
+      */
     }
     
-    setUserEmail(email);
-    setUserName(name || (email ? email.split('@')[0] : null));
+    setUserEmail(email || "demo@example.com");
+    setUserName(name || (email ? email.split('@')[0] : "Demo User"));
     
     if (token) {
       fetchBookings(token);
@@ -109,40 +113,37 @@ const Dashboard = () => {
   
   const categorizeBookings = (bookings: any[]) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of day for proper comparison
     
-    const sortedBookings = [...bookings].sort((a, b) => {
-      const aTime = a.timestamp || new Date(a.journeyDate || a.date).getTime();
-      const bTime = b.timestamp || new Date(b.journeyDate || b.date).getTime();
-      return bTime - aTime;
-    });
+    const upcoming: any[] = [];
+    const completed: any[] = [];
+    const cancelled: any[] = [];
     
-    const upcoming = sortedBookings.filter((b: any) => {
+    bookings.forEach((booking: any) => {
       let journeyDate;
-      if (b.journeyDate) {
-        journeyDate = new Date(b.journeyDate);
-      } else if (b.date) {
-        journeyDate = new Date(b.date);
+      
+      // Parse journey date, handling different formats
+      if (booking.journeyDate) {
+        journeyDate = new Date(booking.journeyDate);
+      } else if (booking.date) {
+        journeyDate = new Date(booking.date);
       } else {
-        return false;
+        // If no date is found, default to 7 days from now
+        journeyDate = new Date();
+        journeyDate.setDate(journeyDate.getDate() + 7);
       }
       
-      return b.status === 'confirmed' && journeyDate >= today;
-    });
-    
-    const completed = sortedBookings.filter((b: any) => {
-      let journeyDate;
-      if (b.journeyDate) {
-        journeyDate = new Date(b.journeyDate);
-      } else if (b.date) {
-        journeyDate = new Date(b.date);
-      } else {
-        return false;
-      }
+      // Reset time to beginning of day for proper comparison
+      journeyDate.setHours(0, 0, 0, 0);
       
-      return b.status === 'confirmed' && journeyDate < today;
+      if (booking.status === 'cancelled') {
+        cancelled.push(booking);
+      } else if (journeyDate < today) {
+        completed.push(booking);
+      } else {
+        upcoming.push(booking);
+      }
     });
-    
-    const cancelled = sortedBookings.filter((b: any) => b.status === 'cancelled');
     
     console.log("Categorized bookings:", {
       upcoming: upcoming.length,
@@ -204,6 +205,27 @@ const Dashboard = () => {
       });
     }
   };
+  
+  // FOR TESTING ONLY: Creates a dummy booking for testing
+  const handleCreateDummyBooking = () => {
+    const dummyBooking = createDummyBooking();
+    simulateSuccessfulPayment(dummyBooking);
+    toast({
+      title: "Test Booking Created",
+      description: "A dummy booking has been added to your bookings",
+    });
+    loadLocalBookings(); // Refresh the bookings list
+  };
+  
+  // FOR TESTING ONLY: Clears all data from localStorage
+  const handleClearData = () => {
+    clearAllData();
+    toast({
+      title: "Data Cleared",
+      description: "All bookings and payments have been cleared",
+    });
+    loadLocalBookings(); // Refresh the bookings list
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -243,6 +265,27 @@ const Dashboard = () => {
                     <span>Payment History</span>
                   </Link>
                 </nav>
+                
+                {/* Testing Controls - REMOVE IN PRODUCTION */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-500 mb-2">Testing Options:</p>
+                  <div className="space-y-2">
+                    <CustomButton 
+                      onClick={handleCreateDummyBooking}
+                      variant="outline"
+                      className="w-full text-sm"
+                    >
+                      Create Test Booking
+                    </CustomButton>
+                    <CustomButton 
+                      onClick={handleClearData}
+                      variant="outline" 
+                      className="w-full text-sm text-red-500"
+                    >
+                      Clear All Data
+                    </CustomButton>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
