@@ -60,13 +60,29 @@ export const simulateSuccessfulPayment = (bookingDetails?: any) => {
       bookingDetails.seatType = bookingDetails.seatClass;
     }
     
+    // Ensure train information is complete
+    if (bookingDetails.trainId && bookingDetails.train) {
+      // Make sure the train object has its id set
+      if (!bookingDetails.train.id) {
+        bookingDetails.train.id = bookingDetails.trainId;
+      }
+    } else if (bookingDetails.train && !bookingDetails.trainId) {
+      bookingDetails.trainId = bookingDetails.train.id;
+    }
+    
     // Clean up any duplicate booking with same PNR
     const filteredBookings = existingBookings.filter((booking: any) => 
       booking.pnr !== bookingDetails.pnr
     );
     
+    // Add timestamp for sorting
+    bookingDetails.timestamp = Date.now();
+    
     filteredBookings.push(bookingDetails);
     localStorage.setItem("userBookings", JSON.stringify(filteredBookings));
+    
+    // Log successful booking for debugging
+    console.log("Booking saved to localStorage:", bookingDetails);
   }
   
   // Trigger events to update UI components
@@ -170,4 +186,40 @@ export const updatePnrStatus = (pnr: string, newStatus: string) => {
   
   localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
   triggerBookingUpdate();
+  
+  // Return true if booking was found and updated
+  return bookings.some((booking: any) => booking.pnr === pnr);
 };
+
+/**
+ * Cancel booking by id
+ */
+export const cancelBooking = (bookingId: string): boolean => {
+  const bookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
+  let found = false;
+  
+  const updatedBookings = bookings.map((booking: any) => {
+    if (booking.id === bookingId) {
+      found = true;
+      return { ...booking, status: "cancelled" };
+    }
+    return booking;
+  });
+  
+  if (found) {
+    localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
+    triggerBookingUpdate();
+    return true;
+  }
+  
+  return false;
+};
+
+/**
+ * Get booking by PNR
+ */
+export const getBookingByPnr = (pnr: string) => {
+  const bookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
+  return bookings.find((booking: any) => booking.pnr === pnr) || null;
+};
+

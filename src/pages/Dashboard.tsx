@@ -9,7 +9,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import TicketDownload from "@/components/booking/TicketDownload";
 import { mockBookings, getTrainById, formatPrice } from "@/utils/mockData";
-import { getUserBookings } from "@/utils/events";
+import { getUserBookings, cancelBooking } from "@/utils/events";
 import axios from "axios";
 import { Calendar, Clock, MapPin, Ticket, User, AlertTriangle, CreditCard, Search, Download } from "lucide-react";
 
@@ -20,7 +20,7 @@ const Dashboard = () => {
   const [completedBookings, setCompletedBookings] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -44,7 +44,7 @@ const Dashboard = () => {
     if (token) {
       fetchBookings(token);
     } else {
-      loadMockBookings();
+      loadLocalBookings();
     }
     
     window.addEventListener("booking_updated", handleBookingUpdate);
@@ -55,11 +55,12 @@ const Dashboard = () => {
   }, [navigate]);
   
   const handleBookingUpdate = () => {
+    console.log("Booking update event detected");
     const token = localStorage.getItem("token");
     if (token) {
       fetchBookings(token);
     } else {
-      loadMockBookings();
+      loadLocalBookings();
     }
   };
   
@@ -76,23 +77,7 @@ const Dashboard = () => {
       
       if (response.data.success) {
         const allBookings = response.data.data;
-        const today = new Date();
-        
-        const upcoming = allBookings.filter((b: any) => {
-          const journeyDate = new Date(b.journeyDate);
-          return b.status === 'confirmed' && journeyDate >= today;
-        });
-        
-        const completed = allBookings.filter((b: any) => {
-          const journeyDate = new Date(b.journeyDate);
-          return b.status === 'confirmed' && journeyDate < today;
-        });
-        
-        const cancelled = allBookings.filter((b: any) => b.status === 'cancelled');
-        
-        setUpcomingBookings(upcoming);
-        setCompletedBookings(completed);
-        setCancelledBookings(cancelled);
+        categorizeBookings(allBookings);
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -101,56 +86,74 @@ const Dashboard = () => {
         description: "Please try again later",
         variant: "destructive",
       });
-      loadMockBookings();
+      loadLocalBookings();
     } finally {
       setLoading(false);
     }
   };
   
-  const loadMockBookings = () => {
+  const loadLocalBookings = () => {
+    console.log("Loading bookings from localStorage");
     const userBookings = getUserBookings();
     
     if (userBookings && userBookings.length > 0) {
-      const today = new Date();
-      
-      const upcoming = userBookings.filter((b: any) => {
-        let journeyDate;
-        if (b.journeyDate) {
-          journeyDate = new Date(b.journeyDate);
-        } else if (b.date) {
-          journeyDate = new Date(b.date);
-        } else {
-          return false;
-        }
-        
-        return b.status === 'confirmed' && journeyDate >= today;
-      });
-      
-      const completed = userBookings.filter((b: any) => {
-        let journeyDate;
-        if (b.journeyDate) {
-          journeyDate = new Date(b.journeyDate);
-        } else if (b.date) {
-          journeyDate = new Date(b.date);
-        } else {
-          return false;
-        }
-        
-        return b.status === 'confirmed' && journeyDate < today;
-      });
-      
-      const cancelled = userBookings.filter((b: any) => b.status === 'cancelled');
-      
-      setUpcomingBookings(upcoming);
-      setCompletedBookings(completed);
-      setCancelledBookings(cancelled);
+      categorizeBookings(userBookings);
+      console.log("Local bookings loaded:", userBookings.length);
     } else {
-      const upcoming = mockBookings.filter(b => b.status === 'confirmed');
-      const cancelled = mockBookings.filter(b => b.status === 'cancelled');
-      
-      setUpcomingBookings(upcoming);
-      setCancelledBookings(cancelled);
+      setUpcomingBookings([]);
+      setCompletedBookings([]);
+      setCancelledBookings([]);
+      setLoading(false);
     }
+  };
+  
+  const categorizeBookings = (bookings: any[]) => {
+    const today = new Date();
+    
+    const sortedBookings = [...bookings].sort((a, b) => {
+      const aTime = a.timestamp || new Date(a.journeyDate || a.date).getTime();
+      const bTime = b.timestamp || new Date(b.journeyDate || b.date).getTime();
+      return bTime - aTime;
+    });
+    
+    const upcoming = sortedBookings.filter((b: any) => {
+      let journeyDate;
+      if (b.journeyDate) {
+        journeyDate = new Date(b.journeyDate);
+      } else if (b.date) {
+        journeyDate = new Date(b.date);
+      } else {
+        return false;
+      }
+      
+      return b.status === 'confirmed' && journeyDate >= today;
+    });
+    
+    const completed = sortedBookings.filter((b: any) => {
+      let journeyDate;
+      if (b.journeyDate) {
+        journeyDate = new Date(b.journeyDate);
+      } else if (b.date) {
+        journeyDate = new Date(b.date);
+      } else {
+        return false;
+      }
+      
+      return b.status === 'confirmed' && journeyDate < today;
+    });
+    
+    const cancelled = sortedBookings.filter((b: any) => b.status === 'cancelled');
+    
+    console.log("Categorized bookings:", {
+      upcoming: upcoming.length,
+      completed: completed.length,
+      cancelled: cancelled.length
+    });
+    
+    setUpcomingBookings(upcoming);
+    setCompletedBookings(completed);
+    setCancelledBookings(cancelled);
+    setLoading(false);
   };
 
   const handleCancelBooking = async (bookingId: string) => {
@@ -175,23 +178,22 @@ const Dashboard = () => {
           fetchBookings(token);
         }
       } else {
-        const userBookings = getUserBookings();
+        const cancelled = cancelBooking(bookingId);
         
-        const updatedBookings = userBookings.map((booking: any) => {
-          if (booking.id === bookingId) {
-            return { ...booking, status: 'cancelled' };
-          }
-          return booking;
-        });
-        
-        localStorage.setItem("userBookings", JSON.stringify(updatedBookings));
-        
-        toast({
-          title: "Booking Cancelled",
-          description: "Your booking has been cancelled successfully. Refund process initiated.",
-        });
-        
-        loadMockBookings();
+        if (cancelled) {
+          toast({
+            title: "Booking Cancelled",
+            description: "Your booking has been cancelled successfully. Refund process initiated.",
+          });
+          
+          loadLocalBookings();
+        } else {
+          toast({
+            title: "Cancellation Failed",
+            description: "Could not find the booking to cancel",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('Error cancelling booking:', error);
@@ -217,7 +219,7 @@ const Dashboard = () => {
                     <User className="h-6 w-6 text-railway-600" />
                   </div>
                   <div>
-                    <CardTitle>{userEmail ? userEmail.split('@')[0] : 'Guest'}</CardTitle>
+                    <CardTitle>{userName || 'Guest'}</CardTitle>
                     <CardDescription>{userEmail || 'Not logged in'}</CardDescription>
                   </div>
                 </div>
@@ -266,7 +268,7 @@ const Dashboard = () => {
                 <TabsContent value="upcoming" className="space-y-6 animate-fade-in">
                   {upcomingBookings.length > 0 ? (
                     upcomingBookings.map((booking) => {
-                      const train = getTrainById(booking.trainId);
+                      const train = booking.train || getTrainById(booking.trainId);
                       if (!train) return null;
                       
                       return (
@@ -331,7 +333,7 @@ const Dashboard = () => {
                               
                               <div className="space-y-3">
                                 <h4 className="font-medium">Passenger Details</h4>
-                                {booking.passengers.map((passenger, index) => (
+                                {booking.passengers && booking.passengers.map((passenger, index) => (
                                   <div key={index} className="flex justify-between items-center">
                                     <div className="flex items-center">
                                       <User size={16} className="mr-2 text-gray-500" />
@@ -341,7 +343,7 @@ const Dashboard = () => {
                                       </span>
                                     </div>
                                     <div className="text-sm font-medium">
-                                      {passenger.seatNumber}
+                                      {passenger.seatNumber || `Seat ${index + 1}`}
                                     </div>
                                   </div>
                                 ))}
@@ -352,7 +354,7 @@ const Dashboard = () => {
                               <div className="flex justify-between items-center">
                                 <div>
                                   <span className="text-gray-600 text-sm">Total Fare</span>
-                                  <p className="font-bold text-lg">{formatPrice(booking.totalFare)}</p>
+                                  <p className="font-bold text-lg">{formatPrice(booking.totalFare || booking.fare)}</p>
                                 </div>
                                 <div className="flex space-x-2">
                                   <TicketDownload booking={booking} train={train} />
@@ -392,7 +394,7 @@ const Dashboard = () => {
                   {completedBookings && completedBookings.length > 0 ? (
                     <div className="space-y-6">
                       {completedBookings.map((booking) => {
-                        const train = getTrainById(booking.trainId);
+                        const train = booking.train || getTrainById(booking.trainId);
                         if (!train) return null;
                         
                         return (
@@ -469,7 +471,7 @@ const Dashboard = () => {
                   {cancelledBookings.length > 0 ? (
                     <div className="space-y-6">
                       {cancelledBookings.map((booking) => {
-                        const train = getTrainById(booking.trainId);
+                        const train = booking.train || getTrainById(booking.trainId);
                         if (!train) return null;
                         
                         return (

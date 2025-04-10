@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { User, Search, Calendar, Clock, MapPin, Ticket } from "lucide-react";
 import { mockBookings, getTrainById } from "@/utils/mockData";
-import { getUserBookings } from "@/utils/events";
+import { getUserBookings, getBookingByPnr } from "@/utils/events";
 import axios from "axios";
 
 const PnrStatus = () => {
@@ -32,11 +31,11 @@ const PnrStatus = () => {
     
     setIsSearching(true);
     
-    // Try to find in localStorage first
-    const userBookings = getUserBookings();
-    const localBooking = userBookings.find((b: any) => b.pnr === pnrNumber);
+    // Try to find in localStorage first using the utility function
+    const localBooking = getBookingByPnr(pnrNumber);
     
     if (localBooking) {
+      // We already have the train data in the booking
       const train = localBooking.train || getTrainById(localBooking.trainId);
       if (train) {
         setSearchResult({ booking: localBooking, train });
@@ -93,7 +92,7 @@ const PnrStatus = () => {
             pnr: pnrData.pnr,
             status: pnrData.status,
             journeyDate: pnrData.journeyDate,
-            passengers: [], // We might not have detailed passenger info from PNR API
+            passengers: pnrData.passengers || [], 
             totalFare: pnrData.totalFare,
             seatClass: pnrData.seatClass,
             bookingDate: pnrData.bookingDate
@@ -104,7 +103,9 @@ const PnrStatus = () => {
             source: pnrData.source,
             destination: pnrData.destination,
             departureTime: pnrData.departureTime,
-            arrivalTime: pnrData.arrivalTime
+            arrivalTime: pnrData.arrivalTime,
+            duration: pnrData.duration,
+            distance: pnrData.distance
           }
         });
         
@@ -146,8 +147,8 @@ const PnrStatus = () => {
                     <User className="h-6 w-6 text-railway-600" />
                   </div>
                   <div>
-                    <CardTitle>John Doe</CardTitle>
-                    <CardDescription>john@example.com</CardDescription>
+                    <CardTitle>{localStorage.getItem("userName") || "Guest"}</CardTitle>
+                    <CardDescription>{localStorage.getItem("userEmail") || "Not logged in"}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -220,8 +221,12 @@ const PnrStatus = () => {
                       <CardDescription className="text-green-700">{searchResult.train.number}</CardDescription>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-medium text-green-600 mb-1">
-                        {searchResult.booking.status === 'confirmed' ? 'Confirmed' : 'Cancelled'}
+                      <div className={`text-sm font-medium ${
+                        searchResult.booking.status === 'confirmed' ? 'text-green-600' : 
+                        searchResult.booking.status === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
+                      } mb-1`}>
+                        {searchResult.booking.status === 'confirmed' ? 'Confirmed' : 
+                         searchResult.booking.status === 'cancelled' ? 'Cancelled' : 'Waitlisted'}
                       </div>
                       <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
                         PNR: {searchResult.booking.pnr}
@@ -269,20 +274,24 @@ const PnrStatus = () => {
                   
                   <div className="space-y-3">
                     <h4 className="font-medium">Passenger Details</h4>
-                    {searchResult.booking.passengers.map((passenger: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                        <div className="flex items-center">
-                          <User size={16} className="mr-2 text-gray-500" />
-                          <span>{passenger.name}</span>
-                          <span className="text-gray-500 text-sm ml-2">
-                            ({passenger.age} yrs, {passenger.gender})
-                          </span>
+                    {searchResult.booking.passengers && searchResult.booking.passengers.length > 0 ? (
+                      searchResult.booking.passengers.map((passenger: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                          <div className="flex items-center">
+                            <User size={16} className="mr-2 text-gray-500" />
+                            <span>{passenger.name}</span>
+                            <span className="text-gray-500 text-sm ml-2">
+                              ({passenger.age} yrs, {passenger.gender})
+                            </span>
+                          </div>
+                          <div className="text-sm font-medium">
+                            {passenger.seatNumber || `Seat ${index + 1}`}
+                          </div>
                         </div>
-                        <div className="text-sm font-medium">
-                          {passenger.seatNumber}
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-gray-500">No passenger details available</div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
