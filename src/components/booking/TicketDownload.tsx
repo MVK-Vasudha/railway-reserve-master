@@ -25,8 +25,7 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
           {
             format: 'a4',
             orientation: 'portrait',
-            quality: 0.95,
-            scale: 2
+            quality: 0.98
           }
         );
         
