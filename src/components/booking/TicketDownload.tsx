@@ -19,24 +19,33 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
     
     try {
       if (ticketRef.current) {
+        // Add a small delay to ensure DOM is fully rendered
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const canvas = await html2canvas(ticketRef.current, {
           scale: 2,
           logging: false,
           useCORS: true,
-          backgroundColor: "#ffffff"
+          backgroundColor: "#ffffff",
+          allowTaint: false,
+          removeContainer: true
         });
         
-        const imgData = canvas.toDataURL('image/png');
+        // Create PDF with specific dimensions
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: 'a4'
+          format: 'a4',
+          compress: true
         });
         
         const imgWidth = 210;
         const imgHeight = canvas.height * imgWidth / canvas.width;
         
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        // Convert canvas to data URL with JPEG format instead of PNG
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
         pdf.save(`RailReserve-Ticket-${booking.pnr}.pdf`);
         
         toast({

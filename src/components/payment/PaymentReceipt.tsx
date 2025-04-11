@@ -25,24 +25,33 @@ const PaymentReceipt = ({ transaction }: PaymentReceiptProps) => {
     
     try {
       if (receiptRef.current) {
+        // Add a small delay to ensure DOM is fully rendered
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const canvas = await html2canvas(receiptRef.current, {
           scale: 2,
           logging: false,
           useCORS: true,
-          backgroundColor: "#ffffff"
+          backgroundColor: "#ffffff",
+          allowTaint: false,
+          removeContainer: true
         });
         
-        const imgData = canvas.toDataURL('image/png');
+        // Create PDF with specific dimensions
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: 'a5'
+          format: 'a5',
+          compress: true
         });
         
         const imgWidth = 148; // A5 width
         const imgHeight = canvas.height * imgWidth / canvas.width;
         
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        // Convert canvas to data URL with JPEG format instead of PNG
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
         pdf.save(`RailReserve-Receipt-${transaction.id}.pdf`);
         
         toast({
