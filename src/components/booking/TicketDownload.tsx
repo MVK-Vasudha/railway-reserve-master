@@ -97,7 +97,7 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
           className="w-[800px] p-8 bg-white text-gray-800 font-sans"
           style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
         >
-          {/* Ticket Header */}
+          {/* Ticket Header - Using solid background instead of gradient */}
           <div className="bg-railway-600 text-white rounded-t-lg p-6">
             <div className="flex justify-between items-center">
               <div>

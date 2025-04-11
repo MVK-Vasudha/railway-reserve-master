@@ -99,8 +99,8 @@ const PaymentReceipt = ({ transaction }: PaymentReceiptProps) => {
           className="w-[600px] p-6 bg-white text-gray-800 font-sans"
           style={{ fontFamily: 'Inter, sans-serif' }}
         >
-          {/* Receipt Header */}
-          <div className="bg-gradient-to-r from-railway-600 to-railway-800 text-white rounded-t-lg p-5">
+          {/* Receipt Header - Using solid background instead of gradient */}
+          <div className="bg-railway-700 text-white rounded-t-lg p-5">
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-2xl font-bold">RailReserve</h1>
