@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,17 +6,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CustomButton } from "@/components/ui/custom-button";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { User, CreditCard, Ticket, Search, Download, Calendar, CheckCircle, XCircle } from "lucide-react";
+import { User, CreditCard, Ticket, Search, Calendar, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
 import { getUserPayments, clearAllData, createDummyBooking, simulateSuccessfulPayment } from "@/utils/events";
+import PaymentReceipt from "@/components/payment/PaymentReceipt";
 
 const PaymentHistory = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // Load transactions when component mounts
   useEffect(() => {
     const token = localStorage.getItem("token");
     const email = localStorage.getItem("userEmail");
@@ -26,11 +25,9 @@ const PaymentHistory = () => {
     if (token) {
       fetchPaymentHistory(token);
     } else {
-      // Use localStorage data when no token is available
       loadLocalPayments();
     }
     
-    // Listen for payment updates
     window.addEventListener("payment_completed", handlePaymentUpdate);
     
     return () => {
@@ -77,7 +74,6 @@ const PaymentHistory = () => {
         title: "Failed to load payment history",
         description: "Using local payment data instead",
       });
-      // Fall back to local payment data
       loadLocalPayments();
     } finally {
       setLoading(false);
@@ -85,12 +81,10 @@ const PaymentHistory = () => {
   };
   
   const loadLocalPayments = () => {
-    // Get payments directly from localStorage
     setLoading(true);
     const payments = getUserPayments();
     console.log("Loaded local payments:", payments.length);
     
-    // Sort payments by timestamp (newest first)
     const sortedPayments = [...payments].sort((a, b) => {
       return (b.timestamp || 0) - (a.timestamp || 0);
     });
@@ -99,38 +93,6 @@ const PaymentHistory = () => {
     setLoading(false);
   };
 
-  const handleDownloadReceipt = (transaction: any) => {
-    // In a real implementation, this would generate and download a PDF receipt
-    // For now, we'll create a simple text receipt as a downloadable file
-    const receiptContent = `
-    ----- RAILRESERVE PAYMENT RECEIPT -----
-    Transaction ID: ${transaction.id}
-    Date: ${transaction.date}
-    Amount: ₹${transaction.amount.toFixed(2)}
-    Status: ${transaction.status}
-    Type: ${transaction.type}
-    Reference (PNR): ${transaction.reference}
-    
-    Thank you for choosing RailReserve!
-    `;
-    
-    const blob = new Blob([receiptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${transaction.id}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Receipt downloaded",
-      description: `Receipt for transaction ${transaction.id} has been downloaded.`,
-    });
-  };
-  
-  // FOR TESTING ONLY: Creates a dummy booking for testing
   const handleCreateDummyBooking = () => {
     const dummyBooking = createDummyBooking();
     simulateSuccessfulPayment(dummyBooking);
@@ -138,17 +100,16 @@ const PaymentHistory = () => {
       title: "Test Booking Created",
       description: "A dummy booking has been added with a payment record",
     });
-    loadLocalPayments(); // Refresh the payments list
+    loadLocalPayments();
   };
-  
-  // FOR TESTING ONLY: Clears all data from localStorage
+
   const handleClearData = () => {
     clearAllData();
     toast({
       title: "Data Cleared",
       description: "All bookings and payments have been cleared",
     });
-    loadLocalPayments(); // Refresh the payments list
+    loadLocalPayments();
   };
 
   return (
@@ -157,7 +118,6 @@ const PaymentHistory = () => {
       
       <div className="container mx-auto px-4 py-8 flex-grow">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Sidebar */}
           <div className="md:col-span-1">
             <Card className="glass sticky top-20">
               <CardHeader>
@@ -191,7 +151,6 @@ const PaymentHistory = () => {
                   </Link>
                 </nav>
                 
-                {/* Testing Controls - REMOVE IN PRODUCTION */}
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-500 mb-2">Testing Options:</p>
                   <div className="space-y-2">
@@ -215,7 +174,6 @@ const PaymentHistory = () => {
             </Card>
           </div>
           
-          {/* Main Content */}
           <div className="md:col-span-3">
             <div className="mb-6">
               <h1 className="text-2xl font-bold mb-2">Payment History</h1>
@@ -272,13 +230,7 @@ const PaymentHistory = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <button 
-                                className="text-railway-600 hover:text-railway-800 flex items-center"
-                                onClick={() => handleDownloadReceipt(transaction)}
-                              >
-                                <Download size={14} className="mr-1" />
-                                <span className="text-xs">Receipt</span>
-                              </button>
+                              <PaymentReceipt transaction={transaction} />
                             </TableCell>
                           </TableRow>
                         ))
