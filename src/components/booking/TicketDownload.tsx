@@ -1,8 +1,11 @@
 import { useState, useRef } from "react";
-import { Download, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import jsPDF from "jspdf";
+import TicketTemplate from "./TicketTemplate";
+import TicketButton from "./TicketButton";
+import { generatePDF } from "@/utils/pdfUtils";
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { FileText } from "lucide-react";
 
 interface TicketDownloadProps {
   booking: any;
@@ -24,20 +27,20 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
           useCORS: true,
           backgroundColor: "#ffffff"
         });
-
+        
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
           format: 'a4'
         });
-
+        
         const imgWidth = 210;
         const imgHeight = canvas.height * imgWidth / canvas.width;
-
+        
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
         pdf.save(`RailReserve-Ticket-${booking.pnr}.pdf`);
-
+        
         toast({
           title: "Ticket downloaded",
           description: "Your e-ticket has been downloaded as PDF.",
@@ -59,11 +62,11 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
     if (!dateString) return 'Not specified';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
       });
     } catch (e) {
       return dateString;
@@ -72,11 +75,13 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
 
   return (
     <>
-      <button
+      <TicketButton 
+        isGenerating={isGenerating}
+        disabled={booking.status === 'cancelled'}
         onClick={handleDownloadTicket}
         disabled={isGenerating || booking.status === 'cancelled'}
         className={`flex items-center px-3 py-1.5 rounded-md text-sm ${
-          booking.status === 'cancelled'
+          booking.status === 'cancelled' 
             ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
             : 'bg-railway-50 text-railway-700 hover:bg-railway-100'
         }`}
@@ -90,9 +95,9 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
       </button>
 
       {/* Hidden ticket template that will be converted to PDF */}
-      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', opacity: 0 }}>
-        <div
-          ref={ticketRef}
+      <div className="hidden">
+        <div 
+          ref={ticketRef} 
           className="w-[800px] p-8 bg-white text-gray-800 font-sans"
           style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
         >
@@ -119,11 +124,11 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
             <div className="text-right">
               <p className="text-sm text-gray-500">Status</p>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                booking.status === 'waitlisted' ? 'bg-yellow-100 text-yellow-800' :
+                booking.status === 'confirmed' ? 'bg-green-100 text-green-800' : 
+                booking.status === 'waitlisted' ? 'bg-yellow-100 text-yellow-800' : 
                 'bg-red-100 text-red-800'
               }`}>
-                {booking.status === 'confirmed' ? 'CONFIRMED' :
+                {booking.status === 'confirmed' ? 'CONFIRMED' : 
                  booking.status === 'waitlisted' ? 'WAITLISTED' : 'CANCELLED'}
               </span>
             </div>
@@ -142,14 +147,14 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
                 <p className="font-semibold">{formatDate(booking.journeyDate || booking.date)}</p>
               </div>
             </div>
-
+            
             <div className="mt-4 flex items-center">
               <div className="flex-1">
                 <p className="text-sm text-gray-500">From</p>
                 <p className="font-semibold">{train.source}</p>
                 <p className="text-sm font-medium">{train.departureTime}</p>
               </div>
-
+              
               <div className="flex-1 flex items-center justify-center px-4">
                 <div className="relative w-full flex items-center justify-center">
                   <div className="w-full h-0.5 bg-railway-200"></div>
@@ -160,7 +165,7 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
                   </div>
                 </div>
               </div>
-
+              
               <div className="flex-1 text-right">
                 <p className="text-sm text-gray-500">To</p>
                 <p className="font-semibold">{train.destination}</p>
@@ -185,7 +190,7 @@ const TicketDownload = ({ booking, train }: TicketDownloadProps) => {
               <tbody className="divide-y divide-gray-200">
                 {booking.passengers.map((p: any, i: number) => (
                   <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm">{i + 1}</td>
+                    <td className="px-4 py-2 whitespace-nowrap text-sm">{i+1}</td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">{p.name}</td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm">{p.age} yrs</td>
                     <td className="px-4 py-2 whitespace-nowrap text-sm">{p.gender}</td>

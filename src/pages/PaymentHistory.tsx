@@ -12,20 +12,17 @@ import {
 import { CustomButton } from "@/components/ui/custom-button";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import {
-  User, CreditCard, Ticket, Search, Download, Calendar, CheckCircle, XCircle
-} from "lucide-react";
+import { User, CreditCard, Ticket, Search, Download, Calendar, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
-import {
-  getUserPayments, clearAllData, createDummyBooking, simulateSuccessfulPayment
-} from "@/utils/events";
+import { getUserPayments, clearAllData, createDummyBooking, simulateSuccessfulPayment } from "@/utils/events";
 
 const PaymentHistory = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
+  
+  // Load transactions when component mounts
   useEffect(() => {
     const token = localStorage.getItem("token");
     const email = localStorage.getItem("userEmail");
@@ -36,7 +33,8 @@ const PaymentHistory = () => {
     } else {
       loadLocalPayments();
     }
-
+    
+    // Listen for payment updates
     window.addEventListener("payment_completed", handlePaymentUpdate);
 
     return () => {
@@ -89,50 +87,49 @@ const PaymentHistory = () => {
   const loadLocalPayments = () => {
     setLoading(true);
     const payments = getUserPayments();
-    const sorted = [...payments].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    setTransactions(sorted);
+    console.log("Loaded local payments:", payments.length);
+    
+    // Sort payments by timestamp (newest first)
+    const sortedPayments = [...payments].sort((a, b) => {
+      return (b.timestamp || 0) - (a.timestamp || 0);
+    });
+    
+    setTransactions(sortedPayments);
     setLoading(false);
   };
 
-  const handleDownloadReceipt = async (transaction: any) => {
-    const div = document.createElement("div");
-    div.className = "p-6 rounded-xl w-[350px] bg-white text-black font-sans";
-    div.innerHTML = `
-      <div class="text-center mb-4">
-        <h2 class="text-lg font-bold text-railway-700">RailReserve Receipt</h2>
-        <p class="text-sm text-gray-500">${transaction.date}</p>
-      </div>
-      <div class="space-y-2 text-sm">
-        <div><strong>Transaction ID:</strong> ${transaction.id}</div>
-        <div><strong>Reference (PNR):</strong> ${transaction.reference}</div>
-        <div><strong>Type:</strong> ${transaction.type}</div>
-        <div><strong>Status:</strong> ${transaction.status}</div>
-        <div><strong>Amount:</strong> ₹${transaction.amount.toFixed(2)}</div>
-      </div>
-      <div class="mt-4 text-center text-xs text-gray-500">
-        Thank you for choosing RailReserve!
-      </div>
+  const handleDownloadReceipt = (transaction: any) => {
+    // In a real implementation, this would generate and download a PDF receipt
+    // For now, we'll create a simple text receipt as a downloadable file
+    const receiptContent = `
+    ----- RAILRESERVE PAYMENT RECEIPT -----
+    Transaction ID: ${transaction.id}
+    Date: ${transaction.date}
+    Amount: ₹${transaction.amount.toFixed(2)}
+    Status: ${transaction.status}
+    Type: ${transaction.type}
+    Reference (PNR): ${transaction.reference}
+    
+    Thank you for choosing RailReserve!
     `;
-    document.body.appendChild(div);
-
-    const canvas = await html2canvas(div, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "px",
-      format: [canvas.width, canvas.height],
-    });
-
-    pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-    pdf.save(`receipt-${transaction.id}.pdf`);
-    document.body.removeChild(div);
-
+    
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${transaction.id}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
     toast({
-      title: "Receipt Downloaded",
-      description: `PDF for transaction ${transaction.id} saved.`,
+      title: "Receipt downloaded",
+      description: `Receipt for transaction ${transaction.id} has been downloaded.`,
     });
   };
-
+  
+  // FOR TESTING ONLY: Creates a dummy booking for testing
   const handleCreateDummyBooking = () => {
     const dummy = createDummyBooking();
     simulateSuccessfulPayment(dummy);
@@ -185,7 +182,9 @@ const PaymentHistory = () => {
                     <CreditCard className="h-5 w-5" /><span>Payment History</span>
                   </Link>
                 </nav>
-                <div className="mt-6 pt-4 border-t">
+                
+                {/* Testing Controls - REMOVE IN PRODUCTION */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-500 mb-2">Testing Options:</p>
                   <CustomButton onClick={handleCreateDummyBooking} variant="outline" className="w-full text-sm">
                     Create Test Payment
@@ -197,7 +196,8 @@ const PaymentHistory = () => {
               </CardContent>
             </Card>
           </div>
-
+          
+          {/* Main Content */}
           <div className="md:col-span-3">
             <h1 className="text-2xl font-bold mb-2">Payment History</h1>
             <p className="text-gray-600 mb-6">View and manage your past transactions</p>
@@ -248,9 +248,9 @@ const PaymentHistory = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <button
-                                onClick={() => handleDownloadReceipt(t)}
+                              <button 
                                 className="text-railway-600 hover:text-railway-800 flex items-center"
+                                onClick={() => handleDownloadReceipt(transactions)}
                               >
                                 <Download size={14} className="mr-1" />
                                 <span className="text-xs">Receipt</span>
