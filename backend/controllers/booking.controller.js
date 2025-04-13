@@ -1,6 +1,8 @@
 
 const Booking = require('../models/Booking');
 const Train = require('../models/Train');
+const User = require('../models/User');
+const emailService = require('../utils/emailService');
 
 // @desc    Get all bookings
 // @route   GET /api/bookings
@@ -100,6 +102,14 @@ exports.createBooking = async (req, res, next) => {
     train.availableSeats[seatClass] -= numPassengers;
     await train.save();
     
+    // Get user details for email
+    const user = await User.findById(req.user.id);
+    
+    // Send booking confirmation email
+    if (user && user.email) {
+      await emailService.sendBookingConfirmation(booking, user, train);
+    }
+    
     res.status(201).json({
       success: true,
       data: booking
@@ -146,6 +156,16 @@ exports.updateBooking = async (req, res, next) => {
       new: true,
       runValidators: true
     });
+    
+    // If status has changed, send notification email
+    if (req.body.status && req.body.status !== booking.status) {
+      const user = await User.findById(booking.userId);
+      const train = await Train.findById(booking.trainId);
+      
+      if (user && train) {
+        await emailService.sendStatusUpdateNotification(booking, user, train, req.body.status);
+      }
+    }
     
     res.status(200).json({
       success: true,
@@ -212,6 +232,68 @@ exports.getUserBookings = async (req, res, next) => {
       success: true,
       count: bookings.length,
       data: bookings
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Notify train delay
+// @route   POST /api/bookings/notify-delay/:trainId
+// @access  Private/Admin
+exports.notifyTrainDelay = async (req, res, next) => {
+  try {
+    const { delayMinutes } = req.body;
+    
+    if (!delayMinutes || isNaN(delayMinutes)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid delay time in minutes'
+      });
+    }
+    
+    const train = await Train.findById(req.params.trainId);
+    if (!train) {
+      return res.status(404).json({
+        success: false,
+        message: `Train not found with id of ${req.params.trainId}`
+      });
+    }
+    
+    // Find all active bookings for this train
+    const bookings = await Booking.find({
+      trainId: req.params.trainId,
+      status: 'confirmed'
+    }).populate({
+      path: 'userId',
+      select: 'email name'
+    });
+    
+    if (bookings.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active bookings found for this train'
+      });
+    }
+    
+    // Send delay notifications to all affected passengers
+    let emailsSent = 0;
+    for (const booking of bookings) {
+      if (booking.userId && booking.userId.email) {
+        await emailService.sendDelayNotification(
+          booking,
+          booking.userId,
+          train,
+          delayMinutes
+        );
+        emailsSent++;
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: `Delay notifications sent to ${emailsSent} passengers`,
+      affectedBookings: bookings.length
     });
   } catch (err) {
     next(err);

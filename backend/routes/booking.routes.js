@@ -7,7 +7,8 @@ const {
   createBooking, 
   updateBooking, 
   deleteBooking,
-  getUserBookings
+  getUserBookings,
+  notifyTrainDelay
 } = require('../controllers/booking.controller');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -18,6 +19,7 @@ router.route('/')
   .post(createBooking);
 
 router.get('/my-bookings', getUserBookings);
+router.post('/notify-delay/:trainId', authorize('admin'), notifyTrainDelay);
 
 router.route('/:id')
   .get(getBooking)

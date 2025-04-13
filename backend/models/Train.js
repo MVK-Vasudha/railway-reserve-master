@@ -4,60 +4,45 @@ const mongoose = require('mongoose');
 const TrainSchema = new mongoose.Schema({
   number: {
     type: String,
-    required: [true, 'Please add a train number'],
+    required: true,
     unique: true,
     trim: true
   },
   name: {
     type: String,
-    required: [true, 'Please add a train name'],
+    required: true,
     trim: true
   },
   source: {
     type: String,
-    required: [true, 'Please add a source station']
+    required: true,
+    trim: true
   },
   destination: {
     type: String,
-    required: [true, 'Please add a destination station']
+    required: true,
+    trim: true
   },
   departureTime: {
     type: String,
-    required: [true, 'Please add departure time']
+    required: true
   },
   arrivalTime: {
     type: String,
-    required: [true, 'Please add arrival time']
-  },
-  distance: {
-    type: Number,
-    required: [true, 'Please add distance in km']
+    required: true
   },
   duration: {
     type: String,
-    required: [true, 'Please add journey duration']
+    required: true
+  },
+  distance: {
+    type: Number,
+    required: true
   },
   days: {
     type: [String],
-    required: [true, 'Please specify running days']
-  },
-  availableSeats: {
-    sleeper: {
-      type: Number,
-      default: 100
-    },
-    ac3Tier: {
-      type: Number,
-      default: 80
-    },
-    ac2Tier: {
-      type: Number,
-      default: 50
-    },
-    acFirstClass: {
-      type: Number,
-      default: 20
-    }
+    required: true,
+    enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Daily']
   },
   fare: {
     sleeper: {
@@ -76,6 +61,55 @@ const TrainSchema = new mongoose.Schema({
       type: Number,
       required: true
     }
+  },
+  availableSeats: {
+    sleeper: {
+      type: Number,
+      required: true
+    },
+    ac3Tier: {
+      type: Number,
+      required: true
+    },
+    ac2Tier: {
+      type: Number,
+      required: true
+    },
+    acFirstClass: {
+      type: Number,
+      required: true
+    }
+  },
+  totalSeats: {
+    sleeper: {
+      type: Number,
+      required: true
+    },
+    ac3Tier: {
+      type: Number,
+      required: true
+    },
+    ac2Tier: {
+      type: Number,
+      required: true
+    },
+    acFirstClass: {
+      type: Number,
+      required: true
+    }
+  },
+  status: {
+    type: String,
+    enum: ['on-time', 'delayed', 'cancelled'],
+    default: 'on-time'
+  },
+  delayMinutes: {
+    type: Number,
+    default: 0
+  },
+  statusReason: {
+    type: String,
+    default: ''
   }
 });
 

@@ -7,12 +7,16 @@ const {
   createTrain, 
   updateTrain, 
   deleteTrain,
-  searchTrains
+  searchTrains,
+  updateTrainStatus
 } = require('../controllers/train.controller');
 const { protect, authorize } = require('../middleware/auth');
 
 // Search trains route
 router.get('/search', searchTrains);
+
+// Train status update (for delays, cancellations)
+router.post('/:id/update-status', protect, authorize('admin'), updateTrainStatus);
 
 // Base train routes
 router.route('/')

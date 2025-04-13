@@ -1,5 +1,7 @@
-
 const Train = require('../models/Train');
+const Booking = require('../models/Booking');
+const User = require('../models/User');
+const emailService = require('../utils/emailService');
 
 // @desc    Get all trains
 // @route   GET /api/trains
@@ -149,6 +151,92 @@ exports.searchTrains = async (req, res, next) => {
       success: true,
       count: availableTrains.length,
       data: availableTrains
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// @desc    Update train status (delays, cancellations)
+// @route   POST /api/trains/:id/update-status
+// @access  Private/Admin
+exports.updateTrainStatus = async (req, res, next) => {
+  try {
+    const { status, delayMinutes, reason } = req.body;
+    
+    if (!status || !['on-time', 'delayed', 'cancelled'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid status (on-time, delayed, cancelled)'
+      });
+    }
+    
+    const train = await Train.findById(req.params.id);
+    
+    if (!train) {
+      return res.status(404).json({
+        success: false,
+        message: `Train not found with id of ${req.params.id}`
+      });
+    }
+    
+    // Update train status
+    train.status = status;
+    if (status === 'delayed' && delayMinutes) {
+      train.delayMinutes = delayMinutes;
+    }
+    if (reason) {
+      train.statusReason = reason;
+    }
+    
+    await train.save();
+    
+    // If train is delayed or cancelled, notify passengers
+    if (status === 'delayed' || status === 'cancelled') {
+      // Find all active bookings for this train
+      const bookings = await Booking.find({
+        trainId: req.params.id,
+        status: 'confirmed'
+      }).populate({
+        path: 'userId',
+        select: 'email name'
+      });
+      
+      // Send notifications
+      let emailsSent = 0;
+      for (const booking of bookings) {
+        if (booking.userId && booking.userId.email) {
+          if (status === 'delayed') {
+            await emailService.sendDelayNotification(
+              booking,
+              booking.userId,
+              train,
+              delayMinutes || 0
+            );
+          } else if (status === 'cancelled') {
+            // You could create a train cancellation email service method here
+            // For now, we'll use the delay notification
+            await emailService.sendDelayNotification(
+              booking,
+              booking.userId,
+              train,
+              9999 // Use a high number to indicate cancellation
+            );
+          }
+          emailsSent++;
+        }
+      }
+      
+      return res.status(200).json({
+        success: true,
+        data: train,
+        message: `Train status updated and ${emailsSent} passengers notified`
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: train
     });
   } catch (err) {
     next(err);
